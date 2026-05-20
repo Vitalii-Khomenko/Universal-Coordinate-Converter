@@ -20,7 +20,7 @@ Do not add Russian or any other non-English text to project files.
 
 - Keep the app usable as a local browser-based coordinate conversion tool unless a task explicitly introduces a backend.
 - Keep the main application in one self-contained HTML file where practical so it can be opened directly in a browser without installation or a server.
-- Preserve offline core coordinate calculations. External dependencies are acceptable only for non-essential features such as maps, screenshots, or PDF export.
+- Preserve offline core coordinate calculations. External dependencies are acceptable only for non-essential features such as map visualization.
 - Use built-in mathematical formulas for coordinate transformations instead of external calculation libraries unless a task explicitly changes that rule.
 - Keep controls touch-friendly, readable, and comfortable on both smartphone and laptop browsers.
 - Preserve TXT import/export workflows and document any supported file formats.

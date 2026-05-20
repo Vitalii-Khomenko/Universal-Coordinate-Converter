@@ -17,9 +17,7 @@ Project Development and Publishing Guidelines for Coordinate Transformer
 ## 3. Offline Functionality
    - Core coordinate calculations must work without internet connection
    - External CDN dependencies are acceptable only for non-essential features:
-     * jsPDF - for PDF export
      * OpenLayers - for map visualization
-     * html2canvas - for map screenshots
    - TXT import/export must work offline
    - Data validation must be built-in
 
@@ -38,14 +36,13 @@ Project Development and Publishing Guidelines for Coordinate Transformer
    - Validate results against known reference points
 
 ## 6. Repository Management
-   - Use .gitignore to exclude development files (rules.txt, screenshots, etc.)
+   - Use .gitignore to exclude generated local files and development-only artifacts
    - Publish only essential files: HTML, Function.txt, README.md, .gitignore
    - Follow semantic versioning for releases
    - Keep commit messages descriptive and in English
 
 ## 7. Quality Assurance
    - Test coordinate transformations with known control points
-   - Verify PDF export functionality
    - Check map visualization accuracy
    - Test file import/export with various data formats
    - Validate browser compatibility (Chrome, Firefox, Edge, Safari)

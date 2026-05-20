@@ -1,6 +1,6 @@
 # Universal Coordinate Converter
 
-Web-based tool for converting coordinates between supported systems, with map visualization and TXT/PDF/KML import/export.
+Web-based tool for converting coordinates between supported systems, with map visualization, TXT import/export, and KML export.
 
 ## Supported Coordinate Systems
 
@@ -15,14 +15,13 @@ Web-based tool for converting coordinates between supported systems, with map vi
 - WGS84 can be converted to GK or SWEREF99 (dropdown selection).
 - TXT file import/export for batch processing.
 - KML export for Google Earth.
-- PDF export (tables and map).
 - Map visualization (OpenLayers, OpenStreetMap tiles; requires internet).
 - Google Maps links for each point.
 - Dynamic table headers and export filenames.
 - Input validation with user feedback.
 - Polyfills for legacy browser math functions.
 
-*Map and PDF export require internet for external libraries and map tiles.*
+*Map visualization requires internet for external libraries and map tiles.*
 
 ## Mathematical Details
 
@@ -40,7 +39,7 @@ Web-based tool for converting coordinates between supported systems, with map vi
    - **Map** (visualize/export points)
 3. Enter data manually or import TXT file.
 4. Select target system if needed.
-5. Click **Convert** and export results as TXT, PDF, or KML.
+5. Click **Convert** and export results as TXT or KML.
 
 ## Input Data Format
 
@@ -64,7 +63,7 @@ PointID Latitude Longitude
 
 - Modern browser (Chrome, Firefox, Edge, Safari)
 - JavaScript enabled
-- Internet required for map and PDF export
+- Internet required for map visualization
 - TXT import up to 5MB
 
 ## Project Structure
@@ -75,9 +74,9 @@ PointID Latitude Longitude
 
 ## Performance
 
-- Most functions work offline (except map and PDF export)
+- Most functions work offline (except map visualization)
 - Handles TXT files up to 5MB
-- Uses CDN libraries for map and PDF features
+- Uses CDN libraries for map features
 
 ## Technical Notes
 
@@ -86,6 +85,15 @@ PointID Latitude Longitude
 - Standard geodetic formulas for all conversions
 - Input validation with user feedback
 - No installation or server required; runs in browser
+
+## Testing
+
+Run the validation suite with:
+```
+python tests/run_validation.py
+```
+
+The suite checks current coordinate-regression baselines and project invariants without external dependencies. These tests protect the current implementation, but authoritative geodetic control-point validation is still recommended before changing transformation formulas.
 
 ## License
 

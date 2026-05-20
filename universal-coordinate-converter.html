@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Coordinate Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -127,12 +124,6 @@
         }
         button.save-txt:hover {
             background: #1976D2;
-        }
-        button.save-pdf {
-            background: #f44336;
-        }
-        button.save-pdf:hover {
-            background: #d32f2f;
         }
         button.import-txt {
             background: #9C27B0;
@@ -342,7 +333,6 @@
                     <button onclick="clearInput()" class="save-txt">Clear Input</button>
                     <button onclick="document.getElementById('fileInput').click()" class="import-txt">Import TXT</button>
                     <button onclick="saveToTxt()" class="save-txt">Save as TXT</button>
-                    <button onclick="saveToPdf()" class="save-pdf">Save as PDF</button>
                 </div>
                 <input type="file" id="fileInput" accept=".txt" style="display:none" onchange="handleFileImport(event)">
             </div>
@@ -381,7 +371,6 @@
                     <button onclick="clearWGSInput()" class="save-txt">Clear Input</button>
                     <button onclick="document.getElementById('wgsFileInput').click()" class="import-txt">Import TXT</button>
                     <button onclick="saveWGS84ToTxt()" class="save-txt">Save as TXT</button>
-                    <button onclick="saveWGS84ToPdf()" class="save-pdf">Save as PDF</button>
                 </div>
                 <input type="file" id="wgsFileInput" accept=".txt" style="display:none" onchange="handleWGSFileImport(event)">
             </div>
@@ -411,7 +400,6 @@
                     <button onclick="clearSwerefInput()" class="save-txt">Clear Input</button>
                     <button onclick="document.getElementById('swerefFileInput').click()" class="import-txt">Import TXT</button>
                     <button onclick="saveSwerefToTxt()" class="save-txt">Save as TXT</button>
-                    <button onclick="saveSwerefToPdf()" class="save-pdf">Save as PDF</button>
                 </div>
                 <input type="file" id="swerefFileInput" accept=".txt" style="display:none" onchange="handleSwerefFileImport(event)">
             </div>
@@ -435,11 +423,7 @@
         <div id="map" class="tab-content">
             <div class="map-container">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                    <button onclick="saveMapToPdf()" class="save-pdf">Save Map as PDF</button>
                     <button onclick="exportKML()" class="save-txt">Export as KML</button>
-                    <label for="pdfQuality" style="font-weight:normal;">JPEG quality:</label>
-                    <input type="range" id="pdfQuality" min="0.2" max="1" step="0.05" value="0.7" style="width:120px;">
-                    <span id="pdfQualityValue">0.7</span>
                 </div>
                 <div id="mapContainer" style="width: 100%; height: 600px;"></div>
             </div>
@@ -931,68 +915,6 @@
             }, 100);
         }
 
-        function saveSwerefToPdf() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            
-            const rows = document.querySelectorAll('#swerefResultsBody tr');
-            if (!rows.length) {
-                alert('No data to export.');
-                return;
-            }
-            
-            const tableData = [];
-            const headers = ['PointID', 'Easting (SWEREF99)', 'Northing (SWEREF99)', 'Height', 'Latitude (WGS84)', 'Longitude (WGS84)', 'Google Maps'];
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 7) {
-                    let gmaps = '';
-                    const link = cells[6].querySelector('a');
-                    if (link) {
-                        gmaps = link.href; // Full clickable URL
-                    }
-                    tableData.push([
-                        cells[0].textContent,
-                        cells[1].textContent,
-                        cells[2].textContent,
-                        cells[3].textContent,
-                        cells[4].textContent,
-                        cells[5].textContent,
-                        gmaps
-                    ]);
-                }
-            });
-            
-            doc.autoTable({
-                head: [headers],
-                body: tableData,
-                styles: { fontSize: 8 },
-                columnStyles: {
-                    0: { cellWidth: 20 },
-                    1: { cellWidth: 28 },
-                    2: { cellWidth: 28 },
-                    3: { cellWidth: 20 },
-                    4: { cellWidth: 28 },
-                    5: { cellWidth: 28 },
-                    6: { cellWidth: 128 }
-                },
-                margin: { left: 10, right: 10, top: 20, bottom: 20 }
-            });
-            
-            let fileName = 'sweref99_to_wgs84_results.pdf';
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, '_converted.pdf');
-            } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                fileName = `sweref99_results_${dd}${mm}${yyyy}.pdf`;
-            }
-            
-            doc.save(fileName);
-        }
-
         function updateSwerefMap() {
             if (!map || !vectorSource) return;
             
@@ -1321,70 +1243,6 @@
             }, 100);
         }
 
-        function saveToPdf() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            
-            const rows = document.querySelectorAll('#resultsBody tr');
-            if (!rows.length) {
-                alert('No data to export.');
-                return;
-            }
-            
-            const tableData = [];
-            const headers = ['PointID', 'Easting (GK)', 'Northing (GK)', 'Height', 'Latitude (WGS84)', 'Longitude (WGS84)', 'Google Maps'];
-
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 7) {
-                    // Google Maps link is in the 7th cell (index 6), but as an <a> element
-                    let gmaps = '';
-                    const link = cells[6].querySelector('a');
-                    if (link) {
-                        gmaps = link.href; // Full clickable URL
-                    }
-                    tableData.push([
-                        cells[0].textContent,
-                        cells[1].textContent,
-                        cells[2].textContent,
-                        cells[3].textContent,
-                        cells[4].textContent,
-                        cells[5].textContent,
-                        gmaps
-                    ]);
-                }
-            });
-
-            doc.autoTable({
-                head: [headers],
-                body: tableData,
-                styles: { fontSize: 8 },
-                columnStyles: {
-                    0: { cellWidth: 20 },
-                    1: { cellWidth: 28 },
-                    2: { cellWidth: 28 },
-                    3: { cellWidth: 20 },
-                    4: { cellWidth: 28 },
-                    5: { cellWidth: 28 },
-                    6: { cellWidth: 128 }
-                },
-                margin: { left: 10, right: 10, top: 20, bottom: 20 }
-            });
-            
-            let fileName = 'gk_to_wgs84_results.pdf';
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, '_converted.pdf');
-            } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                fileName = `gk_results_${dd}${mm}${yyyy}.pdf`;
-            }
-            
-            doc.save(fileName);
-        }
-
         function saveWGS84ToTxt() {
             const rows = document.querySelectorAll('#wgsResultsBody tr');
             if (!rows.length) {
@@ -1438,75 +1296,6 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }, 100);
-        }
-
-        function saveWGS84ToPdf() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const rows = document.querySelectorAll('#wgsResultsBody tr');
-            if (!rows.length) {
-                alert('No data to export.');
-                return;
-            }
-            
-            const targetSystem = document.getElementById('targetSystem').value;
-            let headers;
-            
-            if (targetSystem === 'sweref99') {
-                headers = ['PointID', 'Latitude (WGS84)', 'Longitude (WGS84)', 'Easting (SWEREF99)', 'Northing (SWEREF99)'];
-            } else {
-                headers = ['PointID', 'Latitude (WGS84)', 'Longitude (WGS84)', 'Easting (GK)', 'Northing (GK)'];
-            }
-            
-            const tableData = [];
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 5) {
-                    tableData.push([
-                        cells[0].textContent,
-                        cells[1].textContent,
-                        cells[2].textContent,
-                        cells[3].textContent,
-                        cells[4].textContent
-                    ]);
-                }
-            });
-            
-            doc.autoTable({
-                head: [headers],
-                body: tableData,
-                styles: { fontSize: 8 },
-                columnStyles: {
-                    0: { cellWidth: 20 },
-                    1: { cellWidth: 30 },
-                    2: { cellWidth: 30 },
-                    3: { cellWidth: 20 },
-                    4: { cellWidth: 30 }
-                }
-            });
-            
-            let fileName;
-            if (targetSystem === 'sweref99') {
-                fileName = 'wgs84_to_sweref99_results.pdf';
-            } else {
-                fileName = 'wgs84_to_gk_results.pdf';
-            }
-            
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
-                const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, `${systemSuffix}_converted.pdf`);
-            } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-                fileName = `wgs84${systemSuffix}_results_${dd}${mm}${yyyy}.pdf`;
-            }
-            
-            doc.save(fileName);
         }
 
         function convertCoordinates() {
@@ -1616,30 +1405,6 @@
             event.target.value = '';
         }
 
-        function saveMapToPdf() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape' });
-            const mapContainer = document.getElementById('mapContainer');
-            const quality = parseFloat(document.getElementById('pdfQuality').value);
-            html2canvas(mapContainer).then(canvas => {
-                const imgData = canvas.toDataURL('image/jpeg', quality);
-                const pageWidth = doc.internal.pageSize.getWidth();
-                const pageHeight = doc.internal.pageSize.getHeight();
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                let renderWidth = pageWidth;
-                let renderHeight = (imgHeight * pageWidth) / imgWidth;
-                if (renderHeight > pageHeight) {
-                    renderHeight = pageHeight;
-                    renderWidth = (imgWidth * pageHeight) / imgHeight;
-                }
-                const x = (pageWidth - renderWidth) / 2;
-                const y = (pageHeight - renderHeight) / 2;
-                doc.addImage(imgData, 'JPEG', x, y, renderWidth, renderHeight);
-                doc.save('map.pdf');
-            });
-        }
-
         function exportKML() {
             // Collect points from all result tables
             let allPoints = [];
@@ -1718,13 +1483,6 @@
                         }
                     });
                 });
-                const slider = document.getElementById('pdfQuality');
-                const valueSpan = document.getElementById('pdfQualityValue');
-                if (slider && valueSpan) {
-                    slider.addEventListener('input', function() {
-                        valueSpan.textContent = slider.value;
-                    });
-                }
             });
         })();
     </script>
