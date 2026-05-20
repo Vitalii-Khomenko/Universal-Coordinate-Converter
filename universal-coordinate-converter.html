@@ -30,6 +30,7 @@
         .tab {
             display: inline-block;
             background: #ddd;
+            color: #222;
             border-radius: 4px;
             cursor: pointer;
             font-size: 15px;
@@ -41,6 +42,7 @@
             transition: background 0.2s, color 0.2s;
             text-align: center;
             line-height: 1.2;
+            flex: 0 1 auto;
         }
         .tab.active {
             background: #4CAF50;
@@ -139,6 +141,21 @@
         }
         #fileInput {
             display: none;
+        }
+        .hidden-file-input {
+            display: none;
+        }
+        .target-system-select {
+            padding: 5px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .map-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
         }
         table {
             width: 100%;
@@ -315,26 +332,26 @@
     <div class="container">
         <h1>Universal Coordinate Converter</h1>
         
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('gk2wgs')">Gauß-Krüger (Bessel, Potsdam) to Dezimalgrad (WGS84)</div>
-            <div class="tab" onclick="switchTab('wgs2gk')">WGS84 → Target System</div>
-            <div class="tab" onclick="switchTab('sweref2wgs')">SWEREF99 18 00 → WGS84</div>
-            <div class="tab" onclick="switchTab('map')">Map</div>
+        <div class="tabs" role="tablist" aria-label="Conversion modes">
+            <button type="button" class="tab active" id="tab-gk2wgs" data-tab="gk2wgs" role="tab" aria-selected="true" aria-controls="gk2wgs">Gauß-Krüger (Bessel, Potsdam) to Dezimalgrad (WGS84)</button>
+            <button type="button" class="tab" id="tab-wgs2gk" data-tab="wgs2gk" role="tab" aria-selected="false" aria-controls="wgs2gk">WGS84 → Target System</button>
+            <button type="button" class="tab" id="tab-sweref2wgs" data-tab="sweref2wgs" role="tab" aria-selected="false" aria-controls="sweref2wgs">SWEREF99 18 00 → WGS84</button>
+            <button type="button" class="tab" id="tab-map" data-tab="map" role="tab" aria-selected="false" aria-controls="map">Map</button>
         </div>
 
-        <div id="gk2wgs" class="tab-content active">
+        <div id="gk2wgs" class="tab-content active" role="tabpanel" aria-labelledby="tab-gk2wgs">
             <div class="input-form">
                 <div class="form-group">
                     <div class="input-description">Enter: <b>PointID Easting Northing Height</b> (Gauss-Krüger, Bessel)</div>
                     <textarea id="coordinates" rows="10" placeholder="Example:\n1029 3568189.267 5657692.868 321.609"></textarea>
                 </div>
                 <div class="button-group">
-                    <button onclick="convertCoordinates()">Convert</button>
-                    <button onclick="clearInput()" class="save-txt">Clear Input</button>
-                    <button onclick="document.getElementById('fileInput').click()" class="import-txt">Import TXT</button>
-                    <button onclick="saveToTxt()" class="save-txt">Save as TXT</button>
+                    <button type="button" id="convertGkButton">Convert</button>
+                    <button type="button" id="clearGkButton" class="save-txt">Clear Input</button>
+                    <button type="button" id="importGkButton" class="import-txt">Import TXT</button>
+                    <button type="button" id="saveGkTxtButton" class="save-txt">Save as TXT</button>
                 </div>
-                <input type="file" id="fileInput" accept=".txt" style="display:none" onchange="handleFileImport(event)">
+                <input type="file" id="fileInput" class="hidden-file-input" accept=".txt">
             </div>
             <table id="resultsTable">
                 <thead>
@@ -353,7 +370,7 @@
             </table>
         </div>
 
-        <div id="wgs2gk" class="tab-content">
+        <div id="wgs2gk" class="tab-content" role="tabpanel" aria-labelledby="tab-wgs2gk">
             <div class="input-form">
                 <div class="form-group">
                     <div class="input-description">Enter: <b>PointID Latitude Longitude</b> (WGS84)</div>
@@ -361,18 +378,18 @@
                 </div>
                 <div class="form-group">
                     <label for="targetSystem">Target Coordinate System:</label>
-                    <select id="targetSystem" style="padding: 5px; margin: 5px; border: 1px solid #ccc; border-radius: 4px;">
+                    <select id="targetSystem" class="target-system-select">
                         <option value="gk">Gauß-Krüger (GK)</option>
                         <option value="sweref99">SWEREF99 18 00</option>
                     </select>
                 </div>
                 <div class="button-group">
-                    <button onclick="convertWGS84ToTarget()" class="reverse-convert">Convert</button>
-                    <button onclick="clearWGSInput()" class="save-txt">Clear Input</button>
-                    <button onclick="document.getElementById('wgsFileInput').click()" class="import-txt">Import TXT</button>
-                    <button onclick="saveWGS84ToTxt()" class="save-txt">Save as TXT</button>
+                    <button type="button" id="convertWgsButton" class="reverse-convert">Convert</button>
+                    <button type="button" id="clearWgsButton" class="save-txt">Clear Input</button>
+                    <button type="button" id="importWgsButton" class="import-txt">Import TXT</button>
+                    <button type="button" id="saveWgsTxtButton" class="save-txt">Save as TXT</button>
                 </div>
-                <input type="file" id="wgsFileInput" accept=".txt" style="display:none" onchange="handleWGSFileImport(event)">
+                <input type="file" id="wgsFileInput" class="hidden-file-input" accept=".txt">
             </div>
             <table id="wgsResultsTable">
                 <thead>
@@ -389,19 +406,19 @@
             </table>
         </div>
 
-        <div id="sweref2wgs" class="tab-content">
+        <div id="sweref2wgs" class="tab-content" role="tabpanel" aria-labelledby="tab-sweref2wgs">
             <div class="input-form">
                 <div class="form-group">
                     <div class="input-description">Enter: <b>PointID Easting Northing Height</b> (SWEREF99 18 00, EPSG:3011)</div>
-                    <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 674189.267 6557692.868 321.609"></textarea>
+                    <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 153905.093 6579354.449 0.000"></textarea>
                 </div>
                 <div class="button-group">
-                    <button onclick="convertSwerefToWGS84()">Convert</button>
-                    <button onclick="clearSwerefInput()" class="save-txt">Clear Input</button>
-                    <button onclick="document.getElementById('swerefFileInput').click()" class="import-txt">Import TXT</button>
-                    <button onclick="saveSwerefToTxt()" class="save-txt">Save as TXT</button>
+                    <button type="button" id="convertSwerefButton">Convert</button>
+                    <button type="button" id="clearSwerefButton" class="save-txt">Clear Input</button>
+                    <button type="button" id="importSwerefButton" class="import-txt">Import TXT</button>
+                    <button type="button" id="saveSwerefTxtButton" class="save-txt">Save as TXT</button>
                 </div>
-                <input type="file" id="swerefFileInput" accept=".txt" style="display:none" onchange="handleSwerefFileImport(event)">
+                <input type="file" id="swerefFileInput" class="hidden-file-input" accept=".txt">
             </div>
             <table id="swerefResultsTable">
                 <thead>
@@ -420,12 +437,12 @@
             </table>
         </div>
 
-        <div id="map" class="tab-content">
+        <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map">
             <div class="map-container">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                    <button onclick="exportKML()" class="save-txt">Export as KML</button>
+                <div class="map-toolbar">
+                    <button type="button" id="exportKmlButton" class="save-txt">Export as KML</button>
                 </div>
-                <div id="mapContainer" style="width: 100%; height: 600px;"></div>
+                <div id="mapContainer"></div>
             </div>
         </div>
     </div>
@@ -1313,15 +1330,19 @@
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
+                content.hidden = true;
             });
-            document.getElementById(tabId).classList.add('active');
+            const selectedPanel = document.getElementById(tabId);
+            selectedPanel.classList.add('active');
+            selectedPanel.hidden = false;
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.classList.remove('active');
-            });
-            const tabButtons = document.querySelectorAll('.tab');
-            tabButtons.forEach(tab => {
-                if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(tabId)) {
+                tab.setAttribute('aria-selected', 'false');
+                tab.setAttribute('tabindex', '-1');
+                if (tab.dataset.tab === tabId) {
                     tab.classList.add('active');
+                    tab.setAttribute('aria-selected', 'true');
+                    tab.setAttribute('tabindex', '0');
                 }
             });
             if (tabId === 'map') {
@@ -1392,6 +1413,48 @@
             
             appendDownloadLink(fileName, kml, 'application/vnd.google-earth.kml+xml');
         }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+                tab.addEventListener('keydown', event => {
+                    const tabs = Array.from(document.querySelectorAll('.tab'));
+                    const currentIndex = tabs.indexOf(event.currentTarget);
+                    let nextIndex = currentIndex;
+                    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+                    if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                    if (event.key === 'Home') nextIndex = 0;
+                    if (event.key === 'End') nextIndex = tabs.length - 1;
+                    if (nextIndex !== currentIndex) {
+                        event.preventDefault();
+                        tabs[nextIndex].focus();
+                        switchTab(tabs[nextIndex].dataset.tab);
+                    }
+                });
+            });
+
+            document.getElementById('convertGkButton').addEventListener('click', convertCoordinates);
+            document.getElementById('clearGkButton').addEventListener('click', clearInput);
+            document.getElementById('importGkButton').addEventListener('click', () => document.getElementById('fileInput').click());
+            document.getElementById('saveGkTxtButton').addEventListener('click', saveToTxt);
+            document.getElementById('fileInput').addEventListener('change', handleFileImport);
+
+            document.getElementById('convertWgsButton').addEventListener('click', convertWGS84ToTarget);
+            document.getElementById('clearWgsButton').addEventListener('click', clearWGSInput);
+            document.getElementById('importWgsButton').addEventListener('click', () => document.getElementById('wgsFileInput').click());
+            document.getElementById('saveWgsTxtButton').addEventListener('click', saveWGS84ToTxt);
+            document.getElementById('wgsFileInput').addEventListener('change', handleWGSFileImport);
+
+            document.getElementById('convertSwerefButton').addEventListener('click', convertSwerefToWGS84);
+            document.getElementById('clearSwerefButton').addEventListener('click', clearSwerefInput);
+            document.getElementById('importSwerefButton').addEventListener('click', () => document.getElementById('swerefFileInput').click());
+            document.getElementById('saveSwerefTxtButton').addEventListener('click', saveSwerefToTxt);
+            document.getElementById('swerefFileInput').addEventListener('change', handleSwerefFileImport);
+
+            document.getElementById('exportKmlButton').addEventListener('click', exportKML);
+        }
+
+        document.addEventListener('DOMContentLoaded', setupEventListeners);
     </script>
 </body>
 </html>

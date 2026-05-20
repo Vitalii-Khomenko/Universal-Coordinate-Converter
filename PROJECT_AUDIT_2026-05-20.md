@@ -49,6 +49,9 @@ The following audit items were addressed without changing coordinate transformat
 - `VALIDATION.md` records the current regression baselines and validation limitation.
 - The SWEREF conversion handler is now correctly named `convertSwerefToWGS84`, with a compatibility wrapper for the previous misspelling.
 - `.gitignore` now uses broader generated-export patterns and matches the repository policy.
+- Tabs are now semantic buttons with tab roles, ARIA state, and keyboard arrow navigation.
+- Inline event attributes and inline UI styles were moved into CSS and JavaScript event listeners.
+- README examples now separate GK and SWEREF99 input formats and use a SWEREF99 example within the practical EPSG:3011 area.
 
 ## File Inventory
 
@@ -109,7 +112,7 @@ Strengths:
 Concerns:
 
 - It states that GK to WGS84 uses a seven-parameter Helmert transformation, but the reverse WGS84-to-GK path uses a simpler reverse datum shift before GK projection.
-- The sample SWEREF99 input `674189.267 6557692.868` converts to approximately latitude `58.814527`, longitude `27.089317` with the current implementation, which is far east of the SWEREF99 18 00 central meridian use case shown elsewhere.
+- SWEREF99 examples now use coordinates near the EPSG:3011 area of use.
 - It documents that KML export includes WGS84-to-target result rows.
 - It documents accepted comment lines in TXT input.
 - It warns that map visualization depends on the external map library and tiles.
@@ -212,7 +215,7 @@ TXT export:
 
 - Works through Blob URLs and should be available offline.
 - Uses tab-separated headers.
-- Filenames are derived from the most recent imported file, but that state is shared globally across tabs.
+- Filenames are derived from the relevant workflow's most recent imported file.
 
 KML export:
 
@@ -239,7 +242,7 @@ Sample results:
 - WGS84 `59.3293, 18.0686` to SWEREF99 and back returned similarly small deltas.
 - WGS84 `51.05031687, 9.971396507` to GK and back returned about `-0.00000666` degrees latitude and `0.00003076` degrees longitude drift, roughly meter-level to low-meter-level depending on latitude.
 - README GK sample `3568189.267 5657692.868` converts to approximately WGS84 `51.050313, 9.971402`.
-- README SWEREF sample `674189.267 6557692.868` converts to approximately WGS84 `58.814527, 27.089317`.
+- README SWEREF sample `153905.093 6579354.449` converts to approximately WGS84 `59.329300, 18.068600`.
 
 ### Mathematical Risks
 
@@ -327,17 +330,15 @@ Strengths:
 
 Concerns:
 
-- Tabs are `div` elements with click handlers instead of semantic buttons.
-- Inline `onclick` handlers reduce maintainability.
-- There is no keyboard tablist behavior or ARIA state for active tabs.
+- Tabs are semantic buttons with ARIA state and keyboard arrow navigation.
+- Inline event attributes have been replaced with JavaScript event listeners.
 - Error messages use `alert`, which is simple but disruptive for batch workflows.
-- The map toolbar has inline styles and may become cramped on small screens.
+- Toolbar and form inline styles have been moved into CSS classes.
 
 Recommendations:
 
-- Convert tabs to `<button>` elements.
-- Add `aria-selected`, `aria-controls`, and keyboard navigation if keeping a tab interface.
-- Move inline styles into CSS.
+- Keep semantic tab behavior covered by validation tests.
+- Continue moving larger UI behavior away from inline patterns as the app grows.
 - Replace batch conversion alerts with an inline error summary panel while keeping alerts only for critical file failures.
 
 ## Documentation Audit
@@ -377,6 +378,10 @@ Recommended cleanup:
 Files:
 
 - `universal-coordinate-converter.html`
+
+Status:
+
+- Partially addressed in the follow-up update. Tabs are buttons with ARIA state and keyboard support, inline event attributes were removed, and inline UI styles were moved into CSS classes. Inline conversion alerts remain for now.
 - `Function.txt`
 - `README.md`
 
@@ -550,8 +555,7 @@ Phase 2: workflow consistency.
 Phase 3: repository and UI cleanup.
 
 - Keep `.gitignore` updated with generated-output patterns.
-- Improve semantic tabs and keyboard support.
-- Move inline styles and event handlers into structured CSS/JS sections.
+- Continue improving error-summary UX for batch conversion errors.
 
 ## Recommended Validation Cases
 

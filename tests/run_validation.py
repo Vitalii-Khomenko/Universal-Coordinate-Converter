@@ -312,6 +312,11 @@ class CoordinateRegressionTests(unittest.TestCase):
         self.assertEqual(result["h"], "5657692.533")
 
     def test_sweref_readme_sample_to_wgs84(self) -> None:
+        result = sweref99_to_wgs84(153905.093, 6579354.449)
+        self.assertAlmostEqual(result["lat"], 59.32930000483974, places=8)
+        self.assertAlmostEqual(result["lng"], 18.068600003456346, places=8)
+
+    def test_legacy_sweref_sample_regression(self) -> None:
         result = sweref99_to_wgs84(674189.267, 6557692.868)
         self.assertAlmostEqual(result["lat"], 58.81452667561076, places=8)
         self.assertAlmostEqual(result["lng"], 27.089317460770403, places=8)
@@ -389,7 +394,15 @@ class ProjectInvariantTests(unittest.TestCase):
         html = HTML_PATH.read_text(encoding="utf-8")
         self.assertIn("function convertSwerefToWGS84", html)
         self.assertIn("function convertSwerfToWGS84", html)
-        self.assertIn('onclick="convertSwerefToWGS84()"', html)
+        self.assertIn("convertSwerefButton", html)
+
+    def test_html_uses_event_listeners_instead_of_inline_handlers(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertNotIn("onclick=", html)
+        self.assertNotIn("onchange=", html)
+        self.assertNotIn("style=", html)
+        self.assertIn("function setupEventListeners", html)
+        self.assertIn('role="tablist"', html)
 
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")

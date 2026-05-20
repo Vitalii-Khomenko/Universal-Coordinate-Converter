@@ -10,3 +10,7 @@ proj4.js
 # Operating system metadata
 .DS_Store
 Thumbs.db
+
+# Python test cache
+__pycache__/
+*.pyc

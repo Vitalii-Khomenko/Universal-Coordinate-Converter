@@ -27,8 +27,9 @@ Web-based tool for converting coordinates between supported systems, with map vi
 
 ## Mathematical Details
 
-- **GK (Bessel) ↔ WGS84**: Seven-parameter Helmert transformation
-- **SWEREF99 18 00 ↔ WGS84**: Standard Transverse Mercator projection (GRS80 ellipsoid)
+- **GK (Bessel/Potsdam) to WGS84**: GK inverse projection followed by the live DHDN/Potsdam datum shift.
+- **WGS84 to GK**: Reverse datum shift followed by GK projection.
+- **SWEREF99 18 00 ↔ WGS84**: Transverse Mercator projection formulas on the GRS80 ellipsoid.
 - Polyfills for legacy browser compatibility (Math.cosh, Math.sinh, Math.atanh, Math.asinh)
 
 ## Usage
@@ -45,11 +46,16 @@ Web-based tool for converting coordinates between supported systems, with map vi
 
 ## Input Data Format
 
-**Gauß-Krüger and SWEREF99 to WGS84:**
+**Gauß-Krüger to WGS84:**
 ```
 PointID Easting Northing Height
 1029 3568189.267 5657692.868 321.609
-1030 674189.267 6557692.868 421.609
+```
+
+**SWEREF99 18 00 to WGS84:**
+```
+PointID Easting Northing Height
+1029 153905.093 6579354.449 0.000
 ```
 
 **WGS84 to Target System:**
@@ -69,6 +75,12 @@ Blank lines and lines starting with `#` or `//` are ignored during import and co
 - JavaScript enabled
 - Internet required for map visualization
 - TXT import up to 5MB
+
+## Coordinate Range Notes
+
+- GK output is limited to the Germany-focused range used by the app.
+- SWEREF99 18 00 is intended for eastern Sweden around the 18°E central meridian.
+- Coordinates outside these practical areas may still calculate, but they should be checked against authoritative control points before field use.
 
 ## Project Structure
 
