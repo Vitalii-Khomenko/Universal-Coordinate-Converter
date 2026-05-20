@@ -25,5 +25,6 @@ Do not add Russian or any other non-English text to project files.
 - Keep controls touch-friendly, readable, and comfortable on both smartphone and laptop browsers.
 - Preserve TXT import/export workflows and document any supported file formats.
 - Update project documentation after each functional change.
+- After each functional update, run validation tests, commit the changes, and push the updated project to GitHub.
 - Validate coordinate conversions with known reference points when changing transformation logic.
 - Keep comments and developer notes concise, accurate, and in English.

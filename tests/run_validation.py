@@ -372,6 +372,24 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertNotIn("proj4", html)
         self.assertNotIn("epsg.io", html)
 
+    def test_html_uses_safe_output_helpers(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("function appendTextCell", html)
+        self.assertIn("function escapeXml", html)
+        self.assertNotIn("row.innerHTML", html)
+        self.assertNotIn("lastImportedTxtFileName", html)
+
+    def test_html_guards_map_dependency_and_exports_wgs_rows(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("function isMapLibraryReady", html)
+        self.assertIn("collectRows('#wgsResultsBody tr', 1, 2, 'WGS84')", html)
+
+    def test_project_requires_push_after_updates(self) -> None:
+        agents = AGENTS_PATH.read_text(encoding="utf-8")
+        rules = RULES_PATH.read_text(encoding="utf-8")
+        self.assertIn("push the updated project to GitHub", agents)
+        self.assertIn("push to GitHub", rules)
+
     def test_readme_documents_testing_command(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")
         self.assertIn("python tests/run_validation.py", readme)

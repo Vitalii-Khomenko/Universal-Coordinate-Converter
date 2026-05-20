@@ -37,7 +37,8 @@ Project Development and Publishing Guidelines for Coordinate Transformer
 
 ## 6. Repository Management
    - Use .gitignore to exclude generated local files and development-only artifacts
-   - Publish only essential files: HTML, Function.txt, README.md, .gitignore
+   - Publish essential project files, documentation, validation tests, and license files
+   - After each functional update, run validation tests, commit the changes, and push to GitHub
    - Follow semantic versioning for releases
    - Keep commit messages descriptive and in English
 
@@ -49,9 +50,10 @@ Project Development and Publishing Guidelines for Coordinate Transformer
 
 ## 8. Project Structure
    ```
-   coordinate-transformer.html  # Main application (self-contained)
+   universal-coordinate-converter.html  # Main application (self-contained)
    Function.txt                # Mathematical algorithm documentation
    README.md                   # Project documentation
+   tests/run_validation.py     # Regression validation suite
    .gitignore                  # Git exclusion rules
    ```
 

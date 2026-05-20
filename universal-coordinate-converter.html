@@ -630,6 +630,94 @@
             return 0.5 * Math.log((1 + x) / (1 - x));
         };
 
+        function appendTextCell(row, value) {
+            // Use textContent so imported point IDs cannot inject HTML into result tables.
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+            return cell;
+        }
+
+        function appendMapLinkCell(row, lat, lng) {
+            const cell = document.createElement('td');
+            const link = document.createElement('a');
+            link.href = getGoogleMapsLink(lat, lng);
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'map-link';
+            link.textContent = 'View on Map';
+            cell.appendChild(link);
+            row.appendChild(cell);
+            return cell;
+        }
+
+        function appendDownloadLink(fileName, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        function escapeXml(value) {
+            // KML is XML, so point IDs need XML escaping before export.
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+        function getDateStamp() {
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            return `${dd}${mm}${yyyy}`;
+        }
+
+        function isTxtFile(file) {
+            // Some mobile browsers leave file.type empty for local .txt files.
+            return file.name.toLowerCase().endsWith('.txt') || file.type === 'text/plain';
+        }
+
+        function isMapLibraryReady(showAlert) {
+            const ready = typeof window.ol !== 'undefined';
+            if (!ready && showAlert) {
+                alert('Map visualization is unavailable because the map library did not load. Check your internet connection and reload the page.');
+            }
+            return ready;
+        }
+
+        function createSourceToWgsRow(pointID, x, y, height, lat, lng) {
+            const row = document.createElement('tr');
+            appendTextCell(row, pointID);
+            appendTextCell(row, x.toFixed(3));
+            appendTextCell(row, y.toFixed(3));
+            appendTextCell(row, height.toFixed(3));
+            appendTextCell(row, lat.toFixed(6));
+            appendTextCell(row, lng.toFixed(6));
+            appendMapLinkCell(row, lat, lng);
+            return row;
+        }
+
+        function createWgsTargetRow(pointID, lat, lng, easting, northing) {
+            const row = document.createElement('tr');
+            appendTextCell(row, pointID);
+            appendTextCell(row, lat.toFixed(8));
+            appendTextCell(row, lng.toFixed(8));
+            appendTextCell(row, easting);
+            appendTextCell(row, northing);
+            return row;
+        }
+
         // SWEREF99 18 00 to WGS84 conversion functions - Built-in Mathematical Implementation
         function sweref99ToWGS84(easting, northing) {
             // SWEREF99 18 00 parameters (EPSG:3011)
@@ -809,19 +897,7 @@
                         return;
                     }
                     
-                    const row = document.createElement('tr');
-                    const mapsLink = getGoogleMapsLink(lat, lng);
-                    
-                    row.innerHTML = `
-                        <td>${pointID}</td>
-                        <td>${xNum.toFixed(3)}</td>
-                        <td>${yNum.toFixed(3)}</td>
-                        <td>${hNum.toFixed(3)}</td>
-                        <td>${lat.toFixed(6)}</td>
-                        <td>${lng.toFixed(6)}</td>
-                        <td><a href="${mapsLink}" target="_blank" class="map-link">View on Map</a></td>
-                    `;
-                    resultsBody.appendChild(row);
+                    resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
                 } catch (error) {
                     errorMessage += `Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}\n`;
                     errorCount++;
@@ -833,10 +909,7 @@
             }
             
             // Update map if available
-            if (typeof initMap === 'function') {
-                initMap();
-            }
-            if (typeof updateMap === 'function') {
+            if (map && typeof updateMap === 'function') {
                 updateSwerefMap();
             }
         }
@@ -850,7 +923,7 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            if (!file.type.match('text/plain')) {
+            if (!isTxtFile(file)) {
                 alert('Please select a text file (.txt)');
                 event.target.value = '';
                 return;
@@ -862,7 +935,7 @@
                 return;
             }
             
-            lastImportedTxtFileName = file.name;
+            lastSwerefImportFileName = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('swerefCoordinates').value = e.target.result;
@@ -892,86 +965,17 @@
             });
             
             let fileName = 'sweref99_to_wgs84_results.txt';
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, '_converted.txt');
+            if (lastSwerefImportFileName && lastSwerefImportFileName.toLowerCase().endsWith('.txt')) {
+                fileName = lastSwerefImportFileName.replace(/\.txt$/i, '_converted.txt');
             } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                fileName = `sweref99_results_${dd}${mm}${yyyy}.txt`;
+                fileName = `sweref99_results_${getDateStamp()}.txt`;
             }
             
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            appendDownloadLink(fileName, content, 'text/plain');
         }
 
         function updateSwerefMap() {
-            if (!map || !vectorSource) return;
-            
-            vectorSource.clear();
-            const rows = document.querySelectorAll('#swerefResultsBody tr');
-            let features = [];
-            let points = [];
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-                
-                const pointID = cells[0].textContent.trim();
-                const lat = parseFloat(cells[4].textContent);
-                const lng = parseFloat(cells[5].textContent);
-                
-                if (!isFinite(lat) || !isFinite(lng)) return;
-                points.push({ pointID, lat, lng });
-            });
-            
-            if (points.length > 0) {
-                features = points.map(pt => {
-                    const pointFeature = new ol.Feature({
-                        geometry: new ol.geom.Point(ol.proj.fromLonLat([pt.lng, pt.lat]))
-                    });
-                    pointFeature.setStyle(new ol.style.Style({
-                        image: new ol.style.Circle({
-                            radius: 8,
-                            fill: new ol.style.Fill({ color: '#4CAF50' }),
-                            stroke: new ol.style.Stroke({ color: '#fff', width: 2 })
-                        })
-                    }));
-                    
-                    const textFeature = new ol.Feature({
-                        geometry: new ol.geom.Point(ol.proj.fromLonLat([pt.lng, pt.lat]))
-                    });
-                    textFeature.setStyle(new ol.style.Style({
-                        text: new ol.style.Text({
-                            text: pt.pointID,
-                            font: 'bold 13px Arial',
-                            fill: new ol.style.Fill({ color: '#FF9800' }),
-                            stroke: new ol.style.Stroke({ color: '#fff', width: 3 }),
-                            offsetY: -18
-                        })
-                    }));
-                    
-                    vectorSource.addFeature(pointFeature);
-                    vectorSource.addFeature(textFeature);
-                    return [pointFeature, textFeature];
-                });
-                
-                map.getView().setCenter(ol.proj.fromLonLat([points[0].lng, points[0].lat]));
-                map.getView().setZoom(13);
-            } else {
-                map.getView().setCenter(ol.proj.fromLonLat([10.0, 51.0]));
-                map.getView().setZoom(6);
-            }
+            updateMap();
         }
 
         function convertWGS84ToTarget() {
@@ -1021,15 +1025,7 @@
                             errorCount++;
                             return;
                         }
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${pointID}</td>
-                            <td>${latNum.toFixed(8)}</td>
-                            <td>${lngNum.toFixed(8)}</td>
-                            <td>${result.x.toFixed(3)}</td>
-                            <td>${result.y.toFixed(3)}</td>
-                        `;
-                        resultsBody.appendChild(row);
+                        resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, result.x.toFixed(3), result.y.toFixed(3)));
                     } else {
                         // Convert WGS84 to GK (existing functionality)
                         const pot = wgs2pot(lngNum, latNum);
@@ -1044,15 +1040,7 @@
                             errorCount++;
                             return;
                         }
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${pointID}</td>
-                            <td>${latNum.toFixed(8)}</td>
-                            <td>${lngNum.toFixed(8)}</td>
-                            <td>${gk.r}</td>
-                            <td>${gk.h}</td>
-                        `;
-                        resultsBody.appendChild(row);
+                        resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, gk.r, gk.h));
                     }
                 } catch (error) {
                     errorMessage += `Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}\n`;
@@ -1061,6 +1049,9 @@
             });
             if (errorCount > 0) {
                 alert('Errors found during conversion:\n\n' + errorMessage);
+            }
+            if (map && typeof updateMap === 'function') {
+                updateMap();
             }
         }
 
@@ -1072,8 +1063,9 @@
 
         let map, vectorSource, vectorLayer;
 
-        function initMap() {
-            if (map) return;
+        function initMap(showAlert = false) {
+            if (map) return true;
+            if (!isMapLibraryReady(showAlert)) return false;
             vectorSource = new ol.source.Vector();
             vectorLayer = new ol.layer.Vector({
                 source: vectorSource
@@ -1089,38 +1081,36 @@
                     zoom: 6
                 })
             });
+            return true;
+        }
+
+        function collectMapPoints() {
+            // WGS84 coordinates are read from the visible result tables, including WGS84-to-target inputs.
+            const allPoints = [];
+
+            const collectRows = (selector, latIndex, lngIndex, source) => {
+                document.querySelectorAll(selector).forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length <= Math.max(latIndex, lngIndex)) return;
+                    const pointID = cells[0].textContent.trim();
+                    const lat = parseFloat(cells[latIndex].textContent);
+                    const lng = parseFloat(cells[lngIndex].textContent);
+                    if (!isFinite(lat) || !isFinite(lng)) return;
+                    allPoints.push({ pointID, lat, lng, source });
+                });
+            };
+
+            collectRows('#resultsBody tr', 4, 5, 'GK');
+            collectRows('#swerefResultsBody tr', 4, 5, 'SWEREF99');
+            collectRows('#wgsResultsBody tr', 1, 2, 'WGS84');
+
+            return allPoints;
         }
 
         function updateMap() {
             if (!map || !vectorSource) return;
             vectorSource.clear();
-            
-            // Check all result tables for points
-            let allPoints = [];
-            
-            // GK to WGS84 results
-            const gkRows = document.querySelectorAll('#resultsBody tr');
-            gkRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-                const pointID = cells[0].textContent.trim();
-                const lat = parseFloat(cells[4].textContent);
-                const lng = parseFloat(cells[5].textContent);
-                if (!isFinite(lat) || !isFinite(lng)) return;
-                allPoints.push({ pointID, lat, lng, source: 'GK' });
-            });
-            
-            // SWEREF99 to WGS84 results
-            const swerefRows = document.querySelectorAll('#swerefResultsBody tr');
-            swerefRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-                const pointID = cells[0].textContent.trim();
-                const lat = parseFloat(cells[4].textContent);
-                const lng = parseFloat(cells[5].textContent);
-                if (!isFinite(lat) || !isFinite(lng)) return;
-                allPoints.push({ pointID, lat, lng, source: 'SWEREF99' });
-            });
+            const allPoints = collectMapPoints();
             
             if (allPoints.length > 0) {
                 allPoints.forEach(pt => {
@@ -1129,7 +1119,7 @@
                     });
                     
                     // Different colors for different sources
-                    const color = pt.source === 'SWEREF99' ? '#2196F3' : '#4CAF50';
+                    const color = pt.source === 'SWEREF99' ? '#2196F3' : pt.source === 'WGS84' ? '#607D8B' : '#4CAF50';
                     
                     pointFeature.setStyle(new ol.style.Style({
                         image: new ol.style.Circle({
@@ -1178,7 +1168,7 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            if (!file.type.match('text/plain')) {
+            if (!isTxtFile(file)) {
                 alert('Please select a text file (.txt)');
                 event.target.value = '';
                 return;
@@ -1190,7 +1180,7 @@
                 return;
             }
             
-            lastImportedTxtFileName = file.name;
+            lastWgsImportFileName = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('wgsCoordinates').value = e.target.result;
@@ -1220,27 +1210,13 @@
             });
             
             let fileName = 'gk_to_wgs84_results.txt';
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, '_converted.txt');
+            if (lastGkImportFileName && lastGkImportFileName.toLowerCase().endsWith('.txt')) {
+                fileName = lastGkImportFileName.replace(/\.txt$/i, '_converted.txt');
             } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                fileName = `gk_results_${dd}${mm}${yyyy}.txt`;
+                fileName = `gk_results_${getDateStamp()}.txt`;
             }
             
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            appendDownloadLink(fileName, content, 'text/plain');
         }
 
         function saveWGS84ToTxt() {
@@ -1273,29 +1249,15 @@
                 fileName = 'wgs84_to_gk_results.txt';
             }
             
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
+            if (lastWgsImportFileName && lastWgsImportFileName.toLowerCase().endsWith('.txt')) {
                 const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, `${systemSuffix}_converted.txt`);
+                fileName = lastWgsImportFileName.replace(/\.txt$/i, `${systemSuffix}_converted.txt`);
             } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
                 const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-                fileName = `wgs84${systemSuffix}_results_${dd}${mm}${yyyy}.txt`;
+                fileName = `wgs84${systemSuffix}_results_${getDateStamp()}.txt`;
             }
             
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            appendDownloadLink(fileName, content, 'text/plain');
         }
 
         function convertCoordinates() {
@@ -1325,18 +1287,7 @@
                 }
                 try {
                     const { lat, lng } = gk2geo(xNum, yNum);
-                    const row = document.createElement('tr');
-                    const mapsLink = getGoogleMapsLink(lat, lng);
-                    row.innerHTML = `
-                        <td>${pointID}</td>
-                        <td>${xNum.toFixed(3)}</td>
-                        <td>${yNum.toFixed(3)}</td>
-                        <td>${hNum.toFixed(3)}</td>
-                        <td>${lat.toFixed(6)}</td>
-                        <td>${lng.toFixed(6)}</td>
-                        <td><a href="${mapsLink}" target="_blank" class="map-link">View on Map</a></td>
-                    `;
-                    resultsBody.appendChild(row);
+                    resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
                 } catch (error) {
                     errorMessage += `Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}\n`;
                     errorCount++;
@@ -1345,10 +1296,7 @@
             if (errorCount > 0) {
                 alert('Errors found during conversion:\n\n' + errorMessage);
             }
-            if (typeof initMap === 'function') {
-                initMap();
-            }
-            if (typeof updateMap === 'function') {
+            if (map && typeof updateMap === 'function') {
                 updateMap();
             }
         }
@@ -1372,17 +1320,20 @@
                 }
             });
             if (tabId === 'map') {
-                initMap();
-                updateMap();
+                if (initMap(true)) {
+                    updateMap();
+                }
             }
         }
 
-        let lastImportedTxtFileName = null;
+        let lastGkImportFileName = null;
+        let lastWgsImportFileName = null;
+        let lastSwerefImportFileName = null;
 
         function handleFileImport(event) {
             const file = event.target.files[0];
             if (!file) return;
-            if (!file.type.match('text/plain')) {
+            if (!isTxtFile(file)) {
                 alert('Please select a text file (.txt)');
                 event.target.value = '';
                 return;
@@ -1392,7 +1343,7 @@
                 event.target.value = '';
                 return;
             }
-            lastImportedTxtFileName = file.name;
+            lastGkImportFileName = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('coordinates').value = e.target.result;
@@ -1406,32 +1357,8 @@
         }
 
         function exportKML() {
-            // Collect points from all result tables
-            let allPoints = [];
-            
-            // GK to WGS84 results
-            const gkRows = document.querySelectorAll('#resultsBody tr');
-            gkRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-                const pointID = cells[0].textContent.trim();
-                const lat = parseFloat(cells[4].textContent);
-                const lng = parseFloat(cells[5].textContent);
-                if (!isFinite(lat) || !isFinite(lng)) return;
-                allPoints.push({ pointID: pointID, lat, lng });
-            });
-            
-            // SWEREF99 to WGS84 results
-            const swerefRows = document.querySelectorAll('#swerefResultsBody tr');
-            swerefRows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 6) return;
-                const pointID = cells[0].textContent.trim();
-                const lat = parseFloat(cells[4].textContent);
-                const lng = parseFloat(cells[5].textContent);
-                if (!isFinite(lat) || !isFinite(lng)) return;
-                allPoints.push({ pointID: pointID, lat, lng });
-            });
+            // KML uses all WGS84 coordinates currently present in the result tables.
+            const allPoints = collectMapPoints();
             
             if (!allPoints.length) {
                 alert('No points to export.');
@@ -1443,7 +1370,7 @@
             
             allPoints.forEach(point => {
                 kml += `<Placemark>\n`;
-                kml += `<name>${point.pointID}</name>\n`;
+                kml += `<name>${escapeXml(point.pointID)}</name>\n`;
                 kml += `<Point><coordinates>${point.lng},${point.lat},0</coordinates></Point>\n`;
                 kml += `</Placemark>\n`;
             });
@@ -1451,40 +1378,15 @@
             kml += `</Document>\n</kml>`;
             
             let fileName = 'points.kml';
-            if (lastImportedTxtFileName && lastImportedTxtFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastImportedTxtFileName.replace(/\.txt$/i, '.kml');
+            const sourceFileName = lastGkImportFileName || lastSwerefImportFileName || lastWgsImportFileName;
+            if (sourceFileName && sourceFileName.toLowerCase().endsWith('.txt')) {
+                fileName = sourceFileName.replace(/\.txt$/i, '.kml');
             } else {
-                const now = new Date();
-                const dd = String(now.getDate()).padStart(2, '0');
-                const mm = String(now.getMonth() + 1).padStart(2, '0');
-                const yyyy = now.getFullYear();
-                fileName = `${dd}${mm}${yyyy}.kml`;
+                fileName = `${getDateStamp()}.kml`;
             }
             
-            const blob = new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            appendDownloadLink(fileName, kml, 'application/vnd.google-earth.kml+xml');
         }
-
-        (function() {
-            document.addEventListener('DOMContentLoaded', function() {
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        if (this.getAttribute('onclick') && this.getAttribute('onclick').includes('map')) {
-                            setTimeout(initMap, 100);
-                        }
-                    });
-                });
-            });
-        })();
     </script>
 </body>
 </html>

@@ -34,6 +34,18 @@ Priority areas:
 4. Improve offline fallback behavior for optional CDN features.
 5. Clean repository state and align `.gitignore` with `rules.txt`.
 
+## Follow-Up Fixes Applied
+
+Update date: 2026-05-20
+
+The following audit items were addressed without changing coordinate transformation formulas:
+
+- User-provided point IDs are now written to result tables with `textContent`, and KML point names are XML-escaped.
+- Map initialization now checks whether OpenLayers loaded and shows a clear English message when map visualization is unavailable.
+- Imported TXT filenames are tracked separately for GK, WGS84, and SWEREF99 workflows.
+- Map and KML export now include WGS84 coordinates from WGS84-to-target result rows.
+- Project guidance now states that each functional update must be tested, committed, and pushed to GitHub.
+
 ## File Inventory
 
 ### `universal-coordinate-converter.html`
@@ -60,10 +72,10 @@ Strengths:
 Concerns:
 
 - Mathematical functions are embedded directly in the UI file with duplicated or drifting documentation.
-- Several result rows are built with `innerHTML` using unescaped user-provided `pointID` values.
-- Map features assume CDN globals exist and can fail with unclear errors offline.
-- One global `lastImportedTxtFileName` is shared across all import workflows, which can cause exports in one tab to inherit a filename from another tab.
-- WGS84 target-system result rows are not included in map or KML export because those workflows only collect WGS84 coordinates from the GK-to-WGS84 and SWEREF-to-WGS84 result tables.
+- Result rows now use safe DOM text insertion for imported point IDs.
+- Map features now guard against a missing OpenLayers global and show a clear user-facing message.
+- Import filenames are tracked separately per conversion workflow.
+- WGS84 target-system result rows are included in map and KML export.
 - The function name `convertSwerfToWGS84` contains a spelling error and should be renamed to `convertSwerefToWGS84` with compatibility retained if needed.
 
 ### `Function.txt`
@@ -96,9 +108,9 @@ Concerns:
 
 - It states that GK to WGS84 uses a seven-parameter Helmert transformation, but the reverse WGS84-to-GK path uses a simpler reverse datum shift before GK projection.
 - The sample SWEREF99 input `674189.267 6557692.868` converts to approximately latitude `58.814527`, longitude `27.089317` with the current implementation, which is far east of the SWEREF99 18 00 central meridian use case shown elsewhere.
-- It does not document that KML export currently excludes WGS84-to-target results.
-- It does not document accepted comment lines in TXT input.
-- It does not warn that map features can fail when CDN scripts are unavailable.
+- It documents that KML export includes WGS84-to-target result rows.
+- It documents accepted comment lines in TXT input.
+- It warns that map visualization depends on the external map library and tiles.
 
 ### `rules.txt`
 
@@ -297,12 +309,11 @@ Requires internet or cached CDN assets:
 
 Main issue:
 
-- Optional online features do not degrade gracefully. If CDN scripts are unavailable, clicking map-related buttons can throw runtime errors instead of showing a clear message.
+- Map visualization now checks for OpenLayers before initializing and shows a clear message if the library is unavailable.
 
 Recommendation:
 
-- Add feature checks before map/export actions that depend on CDN globals.
-- Display clear English messages when the required map library did not load.
+- Keep feature checks in place before map actions that depend on CDN globals.
 - Keep core conversions usable even when optional libraries fail.
 
 ## UI and Accessibility Audit
@@ -336,8 +347,9 @@ Documentation is generally understandable, but it needs better alignment with im
 Recommended updates:
 
 - Add exact supported TXT formats, including comment-line support.
-- Clarify that WGS84-to-target results are not currently map/KML export sources, or change the app so they are included.
-- Add offline fallback behavior for optional features.
+- Keep README coverage for supported TXT formats, including comment-line support.
+- Keep WGS84-to-target rows included in map/KML export.
+- Keep offline fallback messaging for optional map features.
 - Replace or verify the SWEREF99 example with a known control point.
 - Document expected coordinate ranges for GK and SWEREF99 18 00.
 - Add a validation section with reference points, expected outputs, tolerances, and source of truth.
@@ -401,6 +413,10 @@ Files:
 
 - `universal-coordinate-converter.html`
 
+Status:
+
+- Addressed in the follow-up update. Result table cells use DOM text insertion, KML names are XML-escaped, and Google Maps links include `rel="noopener noreferrer"`.
+
 Impact:
 
 - Imported TXT data can inject HTML into result tables or break KML output.
@@ -417,6 +433,10 @@ Files:
 - `universal-coordinate-converter.html`
 - `README.md`
 
+Status:
+
+- Addressed in the follow-up update. OpenLayers availability is checked before map initialization, and the README documents the map dependency.
+
 Impact:
 
 - The project promises local usability, but optional actions can fail without clear feedback.
@@ -431,6 +451,10 @@ Recommendation:
 Files:
 
 - `universal-coordinate-converter.html`
+
+Status:
+
+- Addressed in the follow-up update. The app now tracks `lastGkImportFileName`, `lastWgsImportFileName`, and `lastSwerefImportFileName`.
 
 Impact:
 
@@ -449,6 +473,10 @@ Files:
 
 - `universal-coordinate-converter.html`
 - `README.md`
+
+Status:
+
+- Addressed in the follow-up update. Map and KML export now collect WGS84 coordinates from all result tables, including WGS84-to-target rows.
 
 Impact:
 
