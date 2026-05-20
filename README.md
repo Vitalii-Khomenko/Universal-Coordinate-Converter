@@ -14,11 +14,12 @@ Web-based tool for converting coordinates between supported systems, with map vi
 - All coordinate transformations are performed in-browser using built-in geodetic algorithms.
 - WGS84 can be converted to GK or SWEREF99 (dropdown selection).
 - TXT file import/export for batch processing.
+- Copy result tables to the clipboard.
 - KML export for Google Earth.
 - Map visualization (OpenLayers, OpenStreetMap tiles; requires internet).
 - Google Maps links for each point.
 - Dynamic table headers and export filenames.
-- Inline input validation feedback for batch conversion errors and range warnings.
+- Inline input validation feedback with compact conversion, error, and warning counts.
 - KML export includes WGS84 coordinates from all result tables, including WGS84-to-target input rows.
 - Imported point IDs are written safely to tables and KML output.
 - Polyfills for legacy browser math functions.
@@ -45,6 +46,7 @@ Web-based tool for converting coordinates between supported systems, with map vi
 5. Click **Convert** and export results as TXT or KML.
 
 Conversion feedback appears below the active form. Rows with valid data are still converted when other rows contain input errors.
+Each conversion tab includes a visible sample line and a **Copy Results** button for quick reuse of converted table data.
 
 ## Input Data Format
 
@@ -106,6 +108,7 @@ Blank lines and lines starting with `#` or `//` are ignored during import and co
 - KML export includes points from GK-to-WGS84, SWEREF99-to-WGS84, and WGS84-to-target results
 - Map controls show a clear message if the external map library is unavailable
 - Batch conversion feedback is shown inline instead of interrupting smartphone workflows with conversion-error popups
+- Result tables are horizontally scrollable on small screens
 - Standard geodetic formulas for all conversions
 - Input validation with range warnings for SWEREF99 18 00 practical-area checks
 - No installation or server required; runs in browser

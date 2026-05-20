@@ -411,7 +411,19 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn('id="swerefStatus"', html)
         self.assertIn("function showConversionStatus", html)
         self.assertIn("function getSweref18AreaWarning", html)
+        self.assertIn("Converted: ${convertedCount} | Errors: ${errors.length} | Warnings: ${warnings.length}", html)
         self.assertNotIn("Errors found during conversion", html)
+
+    def test_html_includes_mobile_ux_helpers(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn('class="sample-block"', html)
+        self.assertIn('class="table-wrap"', html)
+        self.assertIn('id="copyGkButton"', html)
+        self.assertIn('id="copyWgsButton"', html)
+        self.assertIn('id="copySwerefButton"', html)
+        self.assertIn("function copyResults", html)
+        self.assertIn("function getTableAsTsv", html)
+        self.assertIn("Swipe table horizontally", html)
 
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")

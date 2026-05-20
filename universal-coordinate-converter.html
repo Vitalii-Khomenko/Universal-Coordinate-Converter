@@ -85,7 +85,14 @@
             border-radius: 4px;
             line-height: 1.35;
             padding: 10px 12px;
-            white-space: pre-line;
+        }
+        .status-summary {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .status-details {
+            margin: 0;
+            padding-left: 18px;
         }
         .status-message.error {
             background: #ffebee;
@@ -113,6 +120,18 @@
             font-size: 1.08em;
             color: #333;
             text-align: left;
+        }
+        .sample-block {
+            background: #f7fafc;
+            border: 1px solid #d9e2ec;
+            border-radius: 4px;
+            color: #243b53;
+            font-family: monospace;
+            font-size: 0.95em;
+            line-height: 1.35;
+            margin: 8px 0 0;
+            overflow-x: auto;
+            padding: 8px 10px;
         }
         textarea {
             width: 100%;
@@ -154,6 +173,12 @@
         button.import-txt:hover {
             background: #7B1FA2;
         }
+        button.copy-results {
+            background: #795548;
+        }
+        button.copy-results:hover {
+            background: #5D4037;
+        }
         button.reverse-convert {
             background: #607D8B;
         }
@@ -165,6 +190,11 @@
         }
         .hidden-file-input {
             display: none;
+        }
+        .clipboard-helper {
+            left: -9999px;
+            position: fixed;
+            top: 0;
         }
         .target-system-select {
             padding: 5px;
@@ -185,10 +215,15 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
         th, td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+            vertical-align: top;
         }
         th {
             background-color: #f5f5f5;
@@ -334,6 +369,24 @@
                 overflow-x: auto;
                 white-space: nowrap;
             }
+            .table-wrap {
+                background: white;
+                border-radius: 6px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-bottom: 20px;
+            }
+            .table-wrap table {
+                box-shadow: none;
+                margin-bottom: 0;
+                min-width: 760px;
+            }
+            .table-wrap::before {
+                content: "Swipe table horizontally";
+                color: #52616f;
+                display: block;
+                font-size: 12px;
+                padding: 6px 8px 0;
+            }
             th, td {
                 padding: 8px;
                 font-size: 14px;
@@ -364,6 +417,7 @@
             <div class="input-form">
                 <div class="form-group">
                     <div class="input-description">Enter: <b>PointID Easting Northing Height</b> (Gauss-Krüger, Bessel)</div>
+                    <pre class="sample-block">1029 3568189.267 5657692.868 321.609</pre>
                     <textarea id="coordinates" rows="10" placeholder="Example:\n1029 3568189.267 5657692.868 321.609"></textarea>
                 </div>
                 <div class="button-group">
@@ -371,31 +425,36 @@
                     <button type="button" id="clearGkButton" class="save-txt">Clear Input</button>
                     <button type="button" id="importGkButton" class="import-txt">Import TXT</button>
                     <button type="button" id="saveGkTxtButton" class="save-txt">Save as TXT</button>
+                    <button type="button" id="copyGkButton" class="copy-results">Copy Results</button>
                 </div>
                 <input type="file" id="fileInput" class="hidden-file-input" accept=".txt">
                 <div id="gkStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
-            <table id="resultsTable">
-                <thead>
-                    <tr>
-                        <th>PointID</th>
-                        <th>Easting (GK)</th>
-                        <th>Northing (GK)</th>
-                        <th>Height</th>
-                        <th>Latitude (WGS84)</th>
-                        <th>Longitude (WGS84)</th>
-                        <th>Google Maps</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody">
-                </tbody>
-            </table>
+            <div class="table-wrap">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>PointID</th>
+                            <th>Easting (GK)</th>
+                            <th>Northing (GK)</th>
+                            <th>Height</th>
+                            <th>Latitude (WGS84)</th>
+                            <th>Longitude (WGS84)</th>
+                            <th>Google Maps</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div id="wgs2gk" class="tab-content" role="tabpanel" aria-labelledby="tab-wgs2gk">
             <div class="input-form">
                 <div class="form-group">
                     <div class="input-description">Enter: <b>PointID Latitude Longitude</b> (WGS84)</div>
+                    <pre class="sample-block">1029 51.05031687 9.971396507
+1030 55.12345678 18.98765432</pre>
                     <textarea id="wgsCoordinates" rows="10" placeholder="Example:\n1029 51.05031687 9.971396507"></textarea>
                 </div>
                 <div class="form-group">
@@ -410,29 +469,33 @@
                     <button type="button" id="clearWgsButton" class="save-txt">Clear Input</button>
                     <button type="button" id="importWgsButton" class="import-txt">Import TXT</button>
                     <button type="button" id="saveWgsTxtButton" class="save-txt">Save as TXT</button>
+                    <button type="button" id="copyWgsButton" class="copy-results">Copy Results</button>
                 </div>
                 <input type="file" id="wgsFileInput" class="hidden-file-input" accept=".txt">
                 <div id="wgsStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
-            <table id="wgsResultsTable">
-                <thead>
-                    <tr>
-                        <th>PointID</th>
-                        <th>Latitude (WGS84)</th>
-                        <th>Longitude (WGS84)</th>
-                        <th id="eastingHeader">Easting</th>
-                        <th id="northingHeader">Northing</th>
-                    </tr>
-                </thead>
-                <tbody id="wgsResultsBody">
-                </tbody>
-            </table>
+            <div class="table-wrap">
+                <table id="wgsResultsTable">
+                    <thead>
+                        <tr>
+                            <th>PointID</th>
+                            <th>Latitude (WGS84)</th>
+                            <th>Longitude (WGS84)</th>
+                            <th id="eastingHeader">Easting</th>
+                            <th id="northingHeader">Northing</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wgsResultsBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div id="sweref2wgs" class="tab-content" role="tabpanel" aria-labelledby="tab-sweref2wgs">
             <div class="input-form">
                 <div class="form-group">
                     <div class="input-description">Enter: <b>PointID Easting Northing Height</b> (SWEREF99 18 00, EPSG:3011)</div>
+                    <pre class="sample-block">1029 153905.093 6579354.449 0.000</pre>
                     <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 153905.093 6579354.449 0.000"></textarea>
                 </div>
                 <div class="button-group">
@@ -440,25 +503,28 @@
                     <button type="button" id="clearSwerefButton" class="save-txt">Clear Input</button>
                     <button type="button" id="importSwerefButton" class="import-txt">Import TXT</button>
                     <button type="button" id="saveSwerefTxtButton" class="save-txt">Save as TXT</button>
+                    <button type="button" id="copySwerefButton" class="copy-results">Copy Results</button>
                 </div>
                 <input type="file" id="swerefFileInput" class="hidden-file-input" accept=".txt">
                 <div id="swerefStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
-            <table id="swerefResultsTable">
-                <thead>
-                    <tr>
-                        <th>PointID</th>
-                        <th>Easting (SWEREF99)</th>
-                        <th>Northing (SWEREF99)</th>
-                        <th>Height</th>
-                        <th>Latitude (WGS84)</th>
-                        <th>Longitude (WGS84)</th>
-                        <th>Google Maps</th>
-                    </tr>
-                </thead>
-                <tbody id="swerefResultsBody">
-                </tbody>
-            </table>
+            <div class="table-wrap">
+                <table id="swerefResultsTable">
+                    <thead>
+                        <tr>
+                            <th>PointID</th>
+                            <th>Easting (SWEREF99)</th>
+                            <th>Northing (SWEREF99)</th>
+                            <th>Height</th>
+                            <th>Latitude (WGS84)</th>
+                            <th>Longitude (WGS84)</th>
+                            <th>Google Maps</th>
+                        </tr>
+                    </thead>
+                    <tbody id="swerefResultsBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map">
@@ -748,18 +814,33 @@
         function setStatus(statusId, type, messages) {
             const status = document.getElementById(statusId);
             if (!status) return;
-            const text = Array.isArray(messages) ? messages.filter(Boolean).join('\n') : messages;
-            if (!text) {
+            const summary = Array.isArray(messages) ? messages[0] : messages;
+            const details = Array.isArray(messages) ? messages.slice(1).filter(Boolean) : [];
+            if (!summary) {
                 clearStatus(statusId);
                 return;
             }
-            status.textContent = text;
+            status.textContent = '';
+            const summaryNode = document.createElement('div');
+            summaryNode.className = 'status-summary';
+            summaryNode.textContent = summary;
+            status.appendChild(summaryNode);
+            if (details.length) {
+                const list = document.createElement('ul');
+                list.className = 'status-details';
+                details.forEach(detail => {
+                    const item = document.createElement('li');
+                    item.textContent = detail;
+                    list.appendChild(item);
+                });
+                status.appendChild(list);
+            }
             status.hidden = false;
             status.className = `status-message ${type}`;
         }
 
         function showConversionStatus(statusId, convertedCount, errors, warnings) {
-            const summary = `${convertedCount} row${convertedCount === 1 ? '' : 's'} converted.`;
+            const summary = `Converted: ${convertedCount} | Errors: ${errors.length} | Warnings: ${warnings.length}`;
             if (errors.length) {
                 setStatus(statusId, 'error', [summary, ...errors, ...warnings]);
                 return;
@@ -773,6 +854,47 @@
                 return;
             }
             setStatus(statusId, 'success', summary);
+        }
+
+        function getTableAsTsv(tableId) {
+            const table = document.getElementById(tableId);
+            if (!table) return '';
+            const rows = Array.from(table.querySelectorAll('tr'));
+            return rows.map(row => {
+                const cells = Array.from(row.querySelectorAll('th, td'));
+                return cells.map(cell => {
+                    const link = cell.querySelector('a');
+                    const value = link ? link.href : cell.textContent;
+                    return value.trim().replace(/\s+/g, ' ');
+                }).join('\t');
+            }).filter(Boolean).join('\n');
+        }
+
+        function copyTextToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.className = 'clipboard-helper';
+            document.body.appendChild(textarea);
+            textarea.select();
+            const copied = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            return copied ? Promise.resolve() : Promise.reject(new Error('Clipboard copy failed'));
+        }
+
+        function copyResults(tableId, statusId) {
+            const text = getTableAsTsv(tableId);
+            const dataRows = document.querySelectorAll(`#${tableId} tbody tr`).length;
+            if (!dataRows) {
+                setStatus(statusId, 'warning', 'No result rows to copy.');
+                return;
+            }
+            copyTextToClipboard(text)
+                .then(() => setStatus(statusId, 'success', `Copied ${dataRows} row${dataRows === 1 ? '' : 's'} to clipboard.`))
+                .catch(() => setStatus(statusId, 'error', 'Clipboard copy failed. Use Save as TXT instead.'));
         }
 
         function isLikelySweref18Area(lat, lng) {
@@ -1507,18 +1629,21 @@
             document.getElementById('clearGkButton').addEventListener('click', clearInput);
             document.getElementById('importGkButton').addEventListener('click', () => document.getElementById('fileInput').click());
             document.getElementById('saveGkTxtButton').addEventListener('click', saveToTxt);
+            document.getElementById('copyGkButton').addEventListener('click', () => copyResults('resultsTable', 'gkStatus'));
             document.getElementById('fileInput').addEventListener('change', handleFileImport);
 
             document.getElementById('convertWgsButton').addEventListener('click', convertWGS84ToTarget);
             document.getElementById('clearWgsButton').addEventListener('click', clearWGSInput);
             document.getElementById('importWgsButton').addEventListener('click', () => document.getElementById('wgsFileInput').click());
             document.getElementById('saveWgsTxtButton').addEventListener('click', saveWGS84ToTxt);
+            document.getElementById('copyWgsButton').addEventListener('click', () => copyResults('wgsResultsTable', 'wgsStatus'));
             document.getElementById('wgsFileInput').addEventListener('change', handleWGSFileImport);
 
             document.getElementById('convertSwerefButton').addEventListener('click', convertSwerefToWGS84);
             document.getElementById('clearSwerefButton').addEventListener('click', clearSwerefInput);
             document.getElementById('importSwerefButton').addEventListener('click', () => document.getElementById('swerefFileInput').click());
             document.getElementById('saveSwerefTxtButton').addEventListener('click', saveSwerefToTxt);
+            document.getElementById('copySwerefButton').addEventListener('click', () => copyResults('swerefResultsTable', 'swerefStatus'));
             document.getElementById('swerefFileInput').addEventListener('change', handleSwerefFileImport);
 
             document.getElementById('exportKmlButton').addEventListener('click', exportKML);

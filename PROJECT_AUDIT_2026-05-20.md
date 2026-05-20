@@ -45,7 +45,11 @@ The active transformation formulas are intentionally preserved in `universal-coo
 - Converted tabs to semantic buttons with ARIA state and keyboard navigation.
 - Updated README examples so GK and SWEREF99 formats are clearly separated.
 - Added inline conversion feedback for batch errors and warnings.
+- Made conversion feedback more compact with conversion, error, and warning counts.
 - Added practical-area warnings for SWEREF99 18 00 without blocking calculation.
+- Added visible sample input lines for each conversion tab.
+- Added result-table copy buttons for quick clipboard reuse.
+- Improved small-screen table handling with horizontal scroll wrappers.
 - Documented the rule that functional updates must be tested, committed, and pushed to GitHub.
 
 ## Remaining Risks
@@ -94,7 +98,7 @@ The suite checks:
 ## Next Recommended Work
 
 1. Add authoritative external control-point fixtures for every conversion direction.
-2. Add a small manual browser checklist for smartphone use after UI changes.
+2. Run a small manual browser checklist for smartphone use after UI changes.
 3. Decide whether to keep or remove the legacy SWEREF compatibility wrapper.
 4. Consider vendoring the optional map library only if offline map startup becomes a project goal.
 
