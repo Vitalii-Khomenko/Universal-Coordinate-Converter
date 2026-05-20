@@ -46,6 +46,7 @@ The active transformation formulas are intentionally preserved in `universal-coo
 - Updated README examples so GK and SWEREF99 formats are clearly separated.
 - Added inline conversion feedback for batch errors and warnings.
 - Made conversion feedback more compact with conversion, error, and warning counts.
+- Added strict input parsing so mixed text in coordinate fields is rejected instead of partially parsed.
 - Added practical-area warnings for SWEREF99 18 00 without blocking calculation.
 - Added visible sample input lines for each conversion tab.
 - Added result-table copy buttons for quick clipboard reuse.
@@ -89,6 +90,7 @@ The suite checks:
 - Map dependency guard.
 - Event-listener based UI wiring.
 - Inline conversion feedback.
+- Strict numeric input parsing for coordinate fields.
 - Documentation and validation policy invariants.
 
 ## Next Recommended Work

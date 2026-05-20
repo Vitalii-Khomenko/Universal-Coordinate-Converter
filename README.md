@@ -20,6 +20,7 @@ Web-based tool for converting coordinates between supported systems, with map vi
 - Google Maps links for each point.
 - Dynamic table headers and export filenames.
 - Inline input validation feedback with compact conversion, error, and warning counts.
+- Strict numeric validation rejects letters, commas, and mixed text in coordinate fields.
 - KML export includes WGS84 coordinates from all result tables, including WGS84-to-target input rows.
 - Imported point IDs are written safely to tables and KML output.
 - Polyfills for legacy browser math functions.
@@ -72,6 +73,7 @@ PointID Latitude Longitude
 *Target system (GK or SWEREF99) is selected via dropdown.*
 
 Blank lines and lines starting with `#` or `//` are ignored during import and conversion.
+Point IDs may contain any text without spaces. Coordinate and height fields must contain digits with one optional decimal point, for example `3568189.267`.
 
 ## System Requirements
 
@@ -108,6 +110,7 @@ Blank lines and lines starting with `#` or `//` are ignored during import and co
 - KML export includes points from GK-to-WGS84, SWEREF99-to-WGS84, and WGS84-to-target results
 - Map controls show a clear message if the external map library is unavailable
 - Batch conversion feedback is shown inline instead of interrupting smartphone workflows with conversion-error popups
+- Coordinate input is parsed strictly, so mixed values such as `35634d49.97359` are rejected instead of being partially converted
 - Result tables are horizontally scrollable on small screens
 - Standard geodetic formulas for all conversions
 - Input validation with range warnings for SWEREF99 18 00 practical-area checks

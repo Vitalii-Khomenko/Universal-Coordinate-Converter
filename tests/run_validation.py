@@ -22,6 +22,7 @@ RULES_PATH = ROOT / "rules.txt"
 AGENTS_PATH = ROOT / "AGENTS.md"
 VALIDATION_PATH = ROOT / "VALIDATION.md"
 CYRILLIC_RE = re.compile("[\\u0400-\\u04FF]")
+STRICT_DECIMAL_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
 
 def pot2wgs(lng: float, lat: float) -> dict[str, float]:
@@ -414,6 +415,20 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("function getSweref18AreaWarning", html)
         self.assertIn("Converted: ${convertedCount} | Errors: ${errors.length} | Warnings: ${warnings.length}", html)
         self.assertNotIn("Errors found during conversion", html)
+
+    def test_html_uses_strict_decimal_input_parsing(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("const STRICT_DECIMAL_PATTERN", html)
+        self.assertIn("function parseStrictDecimal", html)
+        self.assertIn("Use digits and one optional decimal point only.", html)
+        self.assertIn("parseStrictDecimal(x)", html)
+        self.assertIn("parseStrictDecimal(lat)", html)
+        self.assertTrue(STRICT_DECIMAL_RE.fullmatch("3563449.97359"))
+        self.assertTrue(STRICT_DECIMAL_RE.fullmatch("0.000"))
+        self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("35634d49.97359"))
+        self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("5\u0432937098.35143"))
+        self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("59,3293"))
+        self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("59.32.93"))
 
     def test_html_includes_mobile_ux_helpers(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

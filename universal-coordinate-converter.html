@@ -803,6 +803,23 @@
             return ready;
         }
 
+        const STRICT_DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/;
+
+        function parseStrictDecimal(value) {
+            const text = String(value).trim();
+            if (!STRICT_DECIMAL_PATTERN.test(text)) return null;
+            const number = Number(text);
+            return isFinite(number) ? number : null;
+        }
+
+        function getStrictDecimalError(lineNumber, fields) {
+            const invalidFields = fields
+                .filter(field => parseStrictDecimal(field.value) === null)
+                .map(field => field.name);
+            if (!invalidFields.length) return '';
+            return `Line ${lineNumber}: Invalid numeric field(s): ${invalidFields.join(', ')}. Use digits and one optional decimal point only.`;
+        }
+
         function clearStatus(statusId) {
             const status = document.getElementById(statusId);
             if (!status) return;
@@ -1090,14 +1107,18 @@
                 }
                 
                 const [pointID, x, y, height] = parts;
-                const xNum = parseFloat(x);
-                const yNum = parseFloat(y);
-                const hNum = parseFloat(height);
-                
-                if (!isFinite(xNum) || !isFinite(yNum) || !isFinite(hNum)) {
-                    errors.push(`Line ${idx+1}: Invalid number(s)`);
+                const numericError = getStrictDecimalError(idx + 1, [
+                    { name: 'Easting', value: x },
+                    { name: 'Northing', value: y },
+                    { name: 'Height', value: height }
+                ]);
+                if (numericError) {
+                    errors.push(numericError);
                     return;
                 }
+                const xNum = parseStrictDecimal(x);
+                const yNum = parseStrictDecimal(y);
+                const hNum = parseStrictDecimal(height);
                 
                 try {
                     const { lat, lng } = sweref99ToWGS84(xNum, yNum);
@@ -1220,12 +1241,16 @@
                     return;
                 }
                 const [pointID, lat, lng] = parts;
-                const latNum = parseFloat(lat);
-                const lngNum = parseFloat(lng);
-                if (!isFinite(latNum) || !isFinite(lngNum)) {
-                    errors.push(`Line ${idx+1}: Invalid number(s)`);
+                const numericError = getStrictDecimalError(idx + 1, [
+                    { name: 'Latitude', value: lat },
+                    { name: 'Longitude', value: lng }
+                ]);
+                if (numericError) {
+                    errors.push(numericError);
                     return;
                 }
+                const latNum = parseStrictDecimal(lat);
+                const lngNum = parseStrictDecimal(lng);
                 try {
                     let result;
                     if (targetSystem === 'sweref99') {
@@ -1489,13 +1514,18 @@
                     return;
                 }
                 const [pointID, x, y, height] = parts;
-                const xNum = parseFloat(x);
-                const yNum = parseFloat(y);
-                const hNum = parseFloat(height);
-                if (!isFinite(xNum) || !isFinite(yNum) || !isFinite(hNum)) {
-                    errors.push(`Line ${idx+1}: Invalid number(s)`);
+                const numericError = getStrictDecimalError(idx + 1, [
+                    { name: 'Easting', value: x },
+                    { name: 'Northing', value: y },
+                    { name: 'Height', value: height }
+                ]);
+                if (numericError) {
+                    errors.push(numericError);
                     return;
                 }
+                const xNum = parseStrictDecimal(x);
+                const yNum = parseStrictDecimal(y);
+                const hNum = parseStrictDecimal(height);
                 try {
                     const { lat, lng } = gk2geo(xNum, yNum);
                     resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));

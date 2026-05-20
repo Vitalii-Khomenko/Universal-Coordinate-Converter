@@ -4,6 +4,10 @@ The current test suite is a regression suite for the live implementation in
 `universal-coordinate-converter.html`. It protects the behavior that the app
 currently uses in the browser.
 
+The suite also protects strict input parsing: coordinate and height fields must
+contain digits with one optional decimal point. `PointID` remains free text
+without spaces.
+
 Run validation with:
 
 ```bash
