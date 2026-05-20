@@ -40,7 +40,7 @@ The active transformation formulas are intentionally preserved in `universal-coo
 - Kept TXT import limited to `.txt` files and 5 MB input size.
 - Tracked imported filenames separately for GK, WGS84, and SWEREF99 workflows.
 - Included WGS84-to-target rows in map and KML export.
-- Corrected the SWEREF conversion handler name while keeping a compatibility wrapper.
+- Corrected the SWEREF conversion handler name and removed the old misspelled compatibility wrapper.
 - Replaced inline event handlers with JavaScript event listeners.
 - Converted tabs to semantic buttons with ARIA state and keyboard navigation.
 - Updated README examples so GK and SWEREF99 formats are clearly separated.
@@ -65,10 +65,6 @@ The active transformation formulas are intentionally preserved in `universal-coo
 3. **Optional map dependency**
 
    Core conversion works offline. Map visualization still depends on the external OpenLayers library and map tiles.
-
-4. **Legacy compatibility wrapper**
-
-   `convertSwerfToWGS84` remains as a compatibility wrapper for older saved local copies. It can be removed in a later breaking cleanup if no external local copies depend on it.
 
 ## Validation Status
 
@@ -99,8 +95,7 @@ The suite checks:
 
 1. Add authoritative external control-point fixtures for every conversion direction.
 2. Run a small manual browser checklist for smartphone use after UI changes.
-3. Decide whether to keep or remove the legacy SWEREF compatibility wrapper.
-4. Consider vendoring the optional map library only if offline map startup becomes a project goal.
+3. Consider vendoring the optional map library only if offline map startup becomes a project goal.
 
 ## Audit Conclusion
 

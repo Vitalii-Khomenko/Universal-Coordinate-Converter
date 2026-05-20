@@ -393,8 +393,9 @@ class ProjectInvariantTests(unittest.TestCase):
     def test_sweref_conversion_function_name_is_corrected(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")
         self.assertIn("function convertSwerefToWGS84", html)
-        self.assertIn("function convertSwerfToWGS84", html)
+        self.assertNotIn("function convertSwerfToWGS84", html)
         self.assertIn("convertSwerefButton", html)
+        self.assertIn("addEventListener('click', convertSwerefToWGS84)", html)
 
     def test_html_uses_event_listeners_instead_of_inline_handlers(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")
