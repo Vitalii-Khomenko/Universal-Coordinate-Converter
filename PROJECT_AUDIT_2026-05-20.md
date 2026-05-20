@@ -24,6 +24,8 @@ The project is a usable standalone coordinate conversion tool. The main applicat
 
 The active transformation formulas are intentionally preserved in `universal-coordinate-converter.html`. `Function.txt` is documentation only and does not duplicate executable formula code.
 
+The project owner reports several months of manual field checking against actual physical locations, with current converter output matching the expected locations in real use.
+
 ## Closed Audit Items
 
 - Removed obsolete generated-output references from project files.
@@ -33,6 +35,7 @@ The active transformation formulas are intentionally preserved in `universal-coo
 - Kept coordinate formulas in the application file as the implementation source of truth.
 - Added regression validation for GK, WGS84, and SWEREF99 conversion paths.
 - Documented current regression baselines and validation limits in `VALIDATION.md`.
+- Documented the owner's multi-month manual field validation of the current coordinate output.
 - Documented that official geodetic control points are required before changing formulas.
 - Escaped user-provided point IDs in table output and KML export.
 - Replaced unsafe result-row HTML construction with DOM text insertion.

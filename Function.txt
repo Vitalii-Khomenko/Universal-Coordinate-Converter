@@ -113,5 +113,8 @@ formulas. The HTML file is now the only implementation source.
 
 - Do not change transformation formulas without adding or updating validation
   cases.
+- Preserve the context that the project owner has manually checked the current
+  converter output against actual field locations over several months of real
+  use, with matching practical results.
 - Run `python tests/run_validation.py` after every functional update.
 - After each functional update, commit and push the updated project to GitHub.

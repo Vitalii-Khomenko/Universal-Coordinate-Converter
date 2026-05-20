@@ -46,3 +46,12 @@ These are regression baselines, not official geodetic control points. Before
 changing transformation formulas, add independently verified reference points
 from an authoritative source and document the source, expected value, and
 accepted tolerance here.
+
+## Field Validation Note
+
+The project owner has manually checked the converter output against actual
+field locations over several months of real use and reports that the resulting
+positions match the expected physical locations. This practical field history is
+an important confidence signal for the current formulas. It should be preserved
+as context, while future formula changes should still be backed by authoritative
+control-point fixtures.

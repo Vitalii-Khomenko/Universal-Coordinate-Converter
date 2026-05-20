@@ -88,6 +88,10 @@ Point IDs may contain any text without spaces. Coordinate and height fields must
 - SWEREF99 18 00 is intended for eastern Sweden around the 18°E central meridian.
 - Coordinates outside these practical areas may still calculate, but the app shows a warning and the result should be checked against authoritative control points before field use.
 
+## Accuracy Notes
+
+The project owner has manually checked the current converter output against actual field locations over several months of real use and reports that the positions match the expected physical locations. The automated suite preserves the current formula behavior with regression tests; authoritative control points are still recommended before changing transformation formulas.
+
 ## Project Structure
 
 - `universal-coordinate-converter.html` — main application (all functions in one file)
