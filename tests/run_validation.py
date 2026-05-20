@@ -404,6 +404,15 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("function setupEventListeners", html)
         self.assertIn('role="tablist"', html)
 
+    def test_html_uses_inline_conversion_feedback(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn('id="gkStatus"', html)
+        self.assertIn('id="wgsStatus"', html)
+        self.assertIn('id="swerefStatus"', html)
+        self.assertIn("function showConversionStatus", html)
+        self.assertIn("function getSweref18AreaWarning", html)
+        self.assertNotIn("Errors found during conversion", html)
+
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")
         rules = RULES_PATH.read_text(encoding="utf-8")

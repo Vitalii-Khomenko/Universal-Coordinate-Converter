@@ -81,6 +81,27 @@
             flex-direction: column;
             gap: 15px;
         }
+        .status-message {
+            border-radius: 4px;
+            line-height: 1.35;
+            padding: 10px 12px;
+            white-space: pre-line;
+        }
+        .status-message.error {
+            background: #ffebee;
+            border: 1px solid #ef9a9a;
+            color: #8a1c1c;
+        }
+        .status-message.warning {
+            background: #fff8e1;
+            border: 1px solid #ffcc80;
+            color: #6f4700;
+        }
+        .status-message.success {
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            color: #1b5e20;
+        }
         .form-group {
             margin-bottom: 0;
             display: flex;
@@ -352,6 +373,7 @@
                     <button type="button" id="saveGkTxtButton" class="save-txt">Save as TXT</button>
                 </div>
                 <input type="file" id="fileInput" class="hidden-file-input" accept=".txt">
+                <div id="gkStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
             <table id="resultsTable">
                 <thead>
@@ -390,6 +412,7 @@
                     <button type="button" id="saveWgsTxtButton" class="save-txt">Save as TXT</button>
                 </div>
                 <input type="file" id="wgsFileInput" class="hidden-file-input" accept=".txt">
+                <div id="wgsStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
             <table id="wgsResultsTable">
                 <thead>
@@ -419,6 +442,7 @@
                     <button type="button" id="saveSwerefTxtButton" class="save-txt">Save as TXT</button>
                 </div>
                 <input type="file" id="swerefFileInput" class="hidden-file-input" accept=".txt">
+                <div id="swerefStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
             <table id="swerefResultsTable">
                 <thead>
@@ -713,6 +737,54 @@
             return ready;
         }
 
+        function clearStatus(statusId) {
+            const status = document.getElementById(statusId);
+            if (!status) return;
+            status.textContent = '';
+            status.hidden = true;
+            status.className = 'status-message';
+        }
+
+        function setStatus(statusId, type, messages) {
+            const status = document.getElementById(statusId);
+            if (!status) return;
+            const text = Array.isArray(messages) ? messages.filter(Boolean).join('\n') : messages;
+            if (!text) {
+                clearStatus(statusId);
+                return;
+            }
+            status.textContent = text;
+            status.hidden = false;
+            status.className = `status-message ${type}`;
+        }
+
+        function showConversionStatus(statusId, convertedCount, errors, warnings) {
+            const summary = `${convertedCount} row${convertedCount === 1 ? '' : 's'} converted.`;
+            if (errors.length) {
+                setStatus(statusId, 'error', [summary, ...errors, ...warnings]);
+                return;
+            }
+            if (warnings.length) {
+                setStatus(statusId, 'warning', [summary, ...warnings]);
+                return;
+            }
+            if (convertedCount === 0) {
+                setStatus(statusId, 'warning', 'No valid input rows found.');
+                return;
+            }
+            setStatus(statusId, 'success', summary);
+        }
+
+        function isLikelySweref18Area(lat, lng) {
+            // EPSG:3011 is useful near Sweden's 18E zone; warn outside this practical range.
+            return lat >= 54.5 && lat <= 70.0 && lng >= 16.5 && lng <= 19.5;
+        }
+
+        function getSweref18AreaWarning(lat, lng, lineNumber) {
+            if (isLikelySweref18Area(lat, lng)) return '';
+            return `Line ${lineNumber}: Coordinate is outside the practical SWEREF99 18 00 area. Result is calculated, but verify it before field use.`;
+        }
+
         function createSourceToWgsRow(pointID, x, y, height, lat, lng) {
             const row = document.createElement('tr');
             appendTextCell(row, pointID);
@@ -879,9 +951,11 @@
             const lines = input.trim().split('\n');
             const resultsBody = document.getElementById('swerefResultsBody');
             resultsBody.innerHTML = '';
+            clearStatus('swerefStatus');
             
-            let errorMessage = '';
-            let errorCount = 0;
+            const errors = [];
+            const warnings = [];
+            let convertedCount = 0;
             
             lines.forEach((line, idx) => {
                 const trimmed = line.trim();
@@ -889,8 +963,7 @@
                 
                 const parts = trimmed.split(/\s+/);
                 if (parts.length < 4) {
-                    errorMessage += `Line ${idx+1}: Not enough values (expected PointID Easting Northing Height)\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Not enough values (expected PointID Easting Northing Height)`);
                     return;
                 }
                 
@@ -900,8 +973,7 @@
                 const hNum = parseFloat(height);
                 
                 if (!isFinite(xNum) || !isFinite(yNum) || !isFinite(hNum)) {
-                    errorMessage += `Line ${idx+1}: Invalid number(s)\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Invalid number(s)`);
                     return;
                 }
                 
@@ -909,21 +981,20 @@
                     const { lat, lng } = sweref99ToWGS84(xNum, yNum);
                     
                     if (!isFinite(lat) || !isFinite(lng)) {
-                        errorMessage += `Line ${idx+1}: Conversion failed - invalid result\n`;
-                        errorCount++;
+                        errors.push(`Line ${idx+1}: Conversion failed - invalid result`);
                         return;
                     }
                     
+                    const warning = getSweref18AreaWarning(lat, lng, idx + 1);
+                    if (warning) warnings.push(warning);
                     resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
+                    convertedCount++;
                 } catch (error) {
-                    errorMessage += `Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
                 }
             });
             
-            if (errorCount > 0) {
-                alert('Errors found during conversion:\n\n' + errorMessage);
-            }
+            showConversionStatus('swerefStatus', convertedCount, errors, warnings);
             
             // Update map if available
             if (map && typeof updateMap === 'function') {
@@ -934,6 +1005,7 @@
         function clearSwerefInput() {
             document.getElementById('swerefCoordinates').value = '';
             document.getElementById('swerefResultsBody').innerHTML = '';
+            clearStatus('swerefStatus');
         }
 
         function handleSwerefFileImport(event) {
@@ -1006,6 +1078,7 @@
             const lines = input.trim().split('\n');
             const resultsBody = document.getElementById('wgsResultsBody');
             resultsBody.innerHTML = '';
+            clearStatus('wgsStatus');
             
             // Update table headers based on target system
             const eastingHeader = document.getElementById('eastingHeader');
@@ -1018,60 +1091,57 @@
                 northingHeader.textContent = 'Northing';
             }
             
-            let errorMessage = '';
-            let errorCount = 0;
+            const errors = [];
+            const warnings = [];
+            let convertedCount = 0;
             lines.forEach((line, idx) => {
                 const trimmed = line.trim();
                 if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return;
                 const parts = trimmed.split(/\s+/);
                 if (parts.length < 3) {
-                    errorMessage += `Line ${idx+1}: Not enough values (expected PointID Latitude Longitude)\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Not enough values (expected PointID Latitude Longitude)`);
                     return;
                 }
                 const [pointID, lat, lng] = parts;
                 const latNum = parseFloat(lat);
                 const lngNum = parseFloat(lng);
                 if (!isFinite(latNum) || !isFinite(lngNum)) {
-                    errorMessage += `Line ${idx+1}: Invalid number(s)\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Invalid number(s)`);
                     return;
                 }
                 try {
                     let result;
                     if (targetSystem === 'sweref99') {
                         // Convert WGS84 to SWEREF99
+                        const warning = getSweref18AreaWarning(latNum, lngNum, idx + 1);
+                        if (warning) warnings.push(warning);
                         result = wgs84ToSweref99(latNum, lngNum);
-                        if (!result || !result.x || !result.y) {
-                            errorMessage += `Line ${idx+1}: SWEREF99 conversion failed\n`;
-                            errorCount++;
+                        if (!result || !isFinite(result.x) || !isFinite(result.y)) {
+                            errors.push(`Line ${idx+1}: SWEREF99 conversion failed`);
                             return;
                         }
                         resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, result.x.toFixed(3), result.y.toFixed(3)));
+                        convertedCount++;
                     } else {
                         // Convert WGS84 to GK (existing functionality)
                         const pot = wgs2pot(lngNum, latNum);
-                        if (!pot || !pot.lng || !pot.lat) {
-                            errorMessage += `Line ${idx+1}: Datum shift failed\n`;
-                            errorCount++;
+                        if (!pot || !isFinite(pot.lng) || !isFinite(pot.lat)) {
+                            errors.push(`Line ${idx+1}: Datum shift failed`);
                             return;
                         }
                         const gk = Dezimal2GK(pot.lng, pot.lat);
                         if (!gk || !gk.r || !gk.h) {
-                            errorMessage += `Line ${idx+1}: GK conversion failed\n`;
-                            errorCount++;
+                            errors.push(`Line ${idx+1}: GK conversion failed. The point is outside the Germany-focused GK range used by the app.`);
                             return;
                         }
                         resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, gk.r, gk.h));
+                        convertedCount++;
                     }
                 } catch (error) {
-                    errorMessage += `Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
                 }
             });
-            if (errorCount > 0) {
-                alert('Errors found during conversion:\n\n' + errorMessage);
-            }
+            showConversionStatus('wgsStatus', convertedCount, errors, warnings);
             if (map && typeof updateMap === 'function') {
                 updateMap();
             }
@@ -1179,11 +1249,13 @@
         function clearInput() {
             document.getElementById('coordinates').value = '';
             document.getElementById('resultsBody').innerHTML = '';
+            clearStatus('gkStatus');
         }
 
         function clearWGSInput() {
             document.getElementById('wgsCoordinates').value = '';
             document.getElementById('wgsResultsBody').innerHTML = '';
+            clearStatus('wgsStatus');
         }
 
         function handleWGSFileImport(event) {
@@ -1287,15 +1359,16 @@
             const lines = input.trim().split('\n');
             const resultsBody = document.getElementById('resultsBody');
             resultsBody.innerHTML = '';
-            let errorMessage = '';
-            let errorCount = 0;
+            clearStatus('gkStatus');
+            const errors = [];
+            const warnings = [];
+            let convertedCount = 0;
             lines.forEach((line, idx) => {
                 const trimmed = line.trim();
                 if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return;
                 const parts = trimmed.split(/\s+/);
                 if (parts.length < 4) {
-                    errorMessage += `Line ${idx+1}: Not enough values (expected PointID Easting Northing Height)\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Not enough values (expected PointID Easting Northing Height)`);
                     return;
                 }
                 const [pointID, x, y, height] = parts;
@@ -1303,21 +1376,18 @@
                 const yNum = parseFloat(y);
                 const hNum = parseFloat(height);
                 if (!isFinite(xNum) || !isFinite(yNum) || !isFinite(hNum)) {
-                    errorMessage += `Line ${idx+1}: Invalid number(s)\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Invalid number(s)`);
                     return;
                 }
                 try {
                     const { lat, lng } = gk2geo(xNum, yNum);
                     resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
+                    convertedCount++;
                 } catch (error) {
-                    errorMessage += `Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}\n`;
-                    errorCount++;
+                    errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
                 }
             });
-            if (errorCount > 0) {
-                alert('Errors found during conversion:\n\n' + errorMessage);
-            }
+            showConversionStatus('gkStatus', convertedCount, errors, warnings);
             if (map && typeof updateMap === 'function') {
                 updateMap();
             }
