@@ -73,7 +73,9 @@ Blank lines and lines starting with `#` or `//` are ignored during import and co
 ## Project Structure
 
 - `universal-coordinate-converter.html` — main application (all functions in one file)
-- `Function.txt` — mathematical algorithm documentation for coordinate transformations
+- `Function.txt` — transformation notes; the HTML file is the implementation source of truth
+- `VALIDATION.md` — regression baselines and validation policy
+- `tests/run_validation.py` — regression validation suite
 - `README.md` — this documentation
 
 ## Performance
@@ -100,7 +102,7 @@ Run the validation suite with:
 python tests/run_validation.py
 ```
 
-The suite checks current coordinate-regression baselines and project invariants without external dependencies. These tests protect the current implementation, but authoritative geodetic control-point validation is still recommended before changing transformation formulas.
+The suite checks current coordinate-regression baselines and project invariants without external dependencies. See `VALIDATION.md` for the current baselines and the limitation that official geodetic control points are still recommended before changing transformation formulas.
 
 ## License
 

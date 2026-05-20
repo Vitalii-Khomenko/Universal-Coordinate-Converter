@@ -20,7 +20,7 @@ Reviewed files:
 
 The project is a compact and usable local browser-based coordinate conversion tool. Its main strength is that the core conversion workflow is contained in a single HTML file and the main coordinate calculations do not require a backend. TXT import/export is available, and map/KML features are present for practical field-style workflows.
 
-The main risks are mathematical traceability, documentation drift, unescaped dynamic output, dependency resilience, and repository hygiene. The application is functional in concept, but the transformation code and `Function.txt` are not fully synchronized, some examples appear inconsistent with the supported coordinate systems, and the current automated tests are regression checks rather than authoritative geodetic control-point validation.
+The main risks are mathematical traceability, reference-data quality, dependency resilience, and longer-term UI accessibility. The application is functional in concept, and the active transformation formulas are intentionally preserved in `universal-coordinate-converter.html`. `Function.txt` now documents that source-of-truth policy instead of duplicating executable formula code.
 
 ## Overall Rating
 
@@ -45,6 +45,10 @@ The following audit items were addressed without changing coordinate transformat
 - Imported TXT filenames are tracked separately for GK, WGS84, and SWEREF99 workflows.
 - Map and KML export now include WGS84 coordinates from WGS84-to-target result rows.
 - Project guidance now states that each functional update must be tested, committed, and pushed to GitHub.
+- `Function.txt` is now documentation only, with `universal-coordinate-converter.html` as the formula source of truth.
+- `VALIDATION.md` records the current regression baselines and validation limitation.
+- The SWEREF conversion handler is now correctly named `convertSwerefToWGS84`, with a compatibility wrapper for the previous misspelling.
+- `.gitignore` now uses broader generated-export patterns and matches the repository policy.
 
 ## File Inventory
 
@@ -76,23 +80,21 @@ Concerns:
 - Map features now guard against a missing OpenLayers global and show a clear user-facing message.
 - Import filenames are tracked separately per conversion workflow.
 - WGS84 target-system result rows are included in map and KML export.
-- The function name `convertSwerfToWGS84` contains a spelling error and should be renamed to `convertSwerefToWGS84` with compatibility retained if needed.
+- The SWEREF conversion handler is correctly named `convertSwerefToWGS84`; `convertSwerfToWGS84` remains only as a compatibility wrapper.
 
 ### `Function.txt`
 
-Role: mathematical algorithm documentation / extracted function reference.
+Role: transformation notes and source-of-truth guidance.
 
 Strengths:
 
-- Contains English comments and documents the intended formulas.
-- Covers all core conversion directions.
+- Documents that `universal-coordinate-converter.html` is the authoritative implementation.
+- Summarizes all supported transformation flows without duplicating executable formulas.
+- Describes the historical drift that was removed.
 
 Concerns:
 
-- It is not synchronized with the live HTML implementation.
-- The GK datum transformation parameters differ between `Function.txt` and the HTML file.
-- The WGS84-to-SWEREF99 implementation differs from the HTML file.
-- Because this file looks like source code, future maintainers may trust it as authoritative even when it no longer matches the app.
+- No duplicate executable transformation code remains in this file.
 
 ### `README.md`
 
@@ -120,12 +122,12 @@ Strengths:
 
 - Matches the project's major technical direction.
 - Clearly requires English documentation, offline core calculations, built-in validation, known control-point testing, and repository cleanup.
+- Documents that every functional update must be tested, committed, and pushed to GitHub.
+- Project structure now matches the current filename and validation files.
 
 Concerns:
 
-- It says `rules.txt` should be excluded by `.gitignore`, but `rules.txt` is tracked.
-- It says published essentials are HTML, `Function.txt`, `README.md`, and `.gitignore`, but the repository also includes project instructions and license files. The license is useful and should probably remain, so the guideline needs updating.
-- The expected main file name in the example is `coordinate-transformer.html`, while the actual main file is `universal-coordinate-converter.html`.
+- No major issue found after the follow-up update.
 
 ### `AGENTS.md`
 
@@ -160,18 +162,17 @@ Role: excludes generated local files.
 
 Current content:
 
-- `92007690.kml`
-- `92007690.txt`
-- `92007721_iGM.kml`
-- `92007721_iGM.txt`
+- `*.kml`
+- `*_converted.txt`
+- `*_results_*.txt`
 - `proj4-source.js`
 - `proj4.js`
+- `.DS_Store`
+- `Thumbs.db`
 
 Concerns:
 
-- It does not ignore `rules.txt`, despite `rules.txt` saying it should be excluded.
-- It only ignores specific generated TXT/KML filenames instead of broader generated-output patterns.
-- It ignores `proj4` files, which is good if they are accidental external calculation dependencies, but the reasoning is not documented.
+- No major issue found after the follow-up update.
 
 ## Functional Audit
 
@@ -189,7 +190,7 @@ WGS84 to target system:
 - Input format: `PointID Latitude Longitude`
 - Target options: GK or SWEREF99 18 00.
 - Output changes table headers according to target.
-- Results are not currently included in map or KML export.
+- WGS84 source rows are included in map and KML export.
 - GK conversion rejects coordinates outside a Germany-focused range.
 - SWEREF99 conversion has no practical range warning.
 
@@ -244,8 +245,7 @@ Sample results:
 
 High risk: source-of-truth drift.
 
-- `Function.txt` and `universal-coordinate-converter.html` contain different implementations for key transformations.
-- The live app should have one authoritative calculation source, or the documentation should be generated from the same source.
+- Addressed in the follow-up update: `universal-coordinate-converter.html` is now the authoritative implementation, and `Function.txt` is documentation only.
 
 High risk: insufficient authoritative validation.
 
@@ -352,23 +352,23 @@ Recommended updates:
 - Keep offline fallback messaging for optional map features.
 - Replace or verify the SWEREF99 example with a known control point.
 - Document expected coordinate ranges for GK and SWEREF99 18 00.
-- Add a validation section with reference points, expected outputs, tolerances, and source of truth.
+- Keep `VALIDATION.md` updated with reference points, expected outputs, tolerances, and source of truth.
 - Update `rules.txt` project structure to match the actual filename.
 
 ## Repository Hygiene Audit
 
 Current concerns:
 
-- `.gitignore` does not match `rules.txt`.
+- `.gitignore` now matches the current generated-export policy.
 - Generated-output ignores are too specific.
 - A lightweight regression test suite is present in `tests/run_validation.py`, but official control-point validation is still needed.
 - No version or release notes are present.
 
 Recommended cleanup:
 
-- Update `.gitignore` with broader patterns such as `*.kml` and generated result TXT patterns.
-- Decide whether `rules.txt` should remain tracked. If yes, update `rules.txt` so it no longer says to exclude itself.
-- Add a `test-cases.md` or `validation.md` with authoritative reference points and expected tolerances.
+- Keep `.gitignore` aligned with generated export patterns.
+- Keep `rules.txt` tracked as project guidance.
+- Continue adding independently verified control points to `VALIDATION.md` when formula changes are planned.
 
 ## Priority Findings
 
@@ -380,6 +380,10 @@ Files:
 - `Function.txt`
 - `README.md`
 
+Status:
+
+- Addressed in the follow-up update. `Function.txt` is documentation only, and the HTML app is the implementation source of truth.
+
 Impact:
 
 - Maintainers cannot reliably know which formula set is authoritative.
@@ -387,15 +391,19 @@ Impact:
 
 Recommendation:
 
-- Make the HTML implementation the current source of truth.
-- Update `Function.txt` to exactly match it, or convert `Function.txt` into explanatory documentation with no duplicate executable code.
-- Add reference-point validation before changing formulas.
+- Keep the HTML implementation as the current source of truth.
+- Keep `Function.txt` as explanatory documentation with no duplicate executable code.
+- Add official reference-point validation before changing formulas.
 
 ### P1: No Authoritative Reference Tests
 
 Files:
 
 - Project-wide
+
+Status:
+
+- Partially addressed. `VALIDATION.md` now records current regression baselines and limitations, but independently verified official control points are still recommended before formula changes.
 
 Impact:
 
@@ -493,13 +501,17 @@ Files:
 - `.gitignore`
 - `rules.txt`
 
+Status:
+
+- Addressed in the follow-up update. `.gitignore` now uses broader generated-export patterns, and `rules.txt` describes the current tracked project structure.
+
 Impact:
 
 - Development artifacts and generated files may continue to enter version control.
 
 Recommendation:
 
-- Reconcile `.gitignore` and `rules.txt`.
+- Keep `.gitignore` and `rules.txt` aligned as export behavior changes.
 
 ### P3: Accessibility and Maintainability
 
@@ -523,7 +535,8 @@ Recommendation:
 Phase 1: correctness and safety.
 
 - Add reference-point validation data.
-- Reconcile `Function.txt` with the live implementation.
+- Keep `VALIDATION.md` updated with reference-point validation data.
+- Keep `Function.txt` reconciled with the live implementation policy.
 - Escape table and KML output.
 - Add dependency checks for map features.
 
@@ -532,11 +545,11 @@ Phase 2: workflow consistency.
 - Fix per-tab filename state.
 - Decide whether WGS84-to-target results belong in map/KML export.
 - Update README with exact behavior and examples.
-- Rename `convertSwerfToWGS84` while preserving compatibility.
+- Keep the `convertSwerfToWGS84` compatibility wrapper until old local copies are no longer relevant.
 
 Phase 3: repository and UI cleanup.
 
-- Update `.gitignore`.
+- Keep `.gitignore` updated with generated-output patterns.
 - Improve semantic tabs and keyboard support.
 - Move inline styles and event handlers into structured CSS/JS sections.
 

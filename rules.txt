@@ -51,8 +51,9 @@ Project Development and Publishing Guidelines for Coordinate Transformer
 ## 8. Project Structure
    ```
    universal-coordinate-converter.html  # Main application (self-contained)
-   Function.txt                # Mathematical algorithm documentation
+   Function.txt                # Transformation notes and source-of-truth guidance
    README.md                   # Project documentation
+   VALIDATION.md               # Regression baselines and validation policy
    tests/run_validation.py     # Regression validation suite
    .gitignore                  # Git exclusion rules
    ```

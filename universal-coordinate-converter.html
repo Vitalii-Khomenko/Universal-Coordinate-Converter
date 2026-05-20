@@ -396,7 +396,7 @@
                     <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 674189.267 6557692.868 321.609"></textarea>
                 </div>
                 <div class="button-group">
-                    <button onclick="convertSwerfToWGS84()">Convert</button>
+                    <button onclick="convertSwerefToWGS84()">Convert</button>
                     <button onclick="clearSwerefInput()" class="save-txt">Clear Input</button>
                     <button onclick="document.getElementById('swerefFileInput').click()" class="import-txt">Import TXT</button>
                     <button onclick="saveSwerefToTxt()" class="save-txt">Save as TXT</button>
@@ -857,7 +857,7 @@
             };
         }
 
-        function convertSwerfToWGS84() {
+        function convertSwerefToWGS84() {
             const input = document.getElementById('swerefCoordinates').value;
             const lines = input.trim().split('\n');
             const resultsBody = document.getElementById('swerefResultsBody');
@@ -972,6 +972,11 @@
             }
             
             appendDownloadLink(fileName, content, 'text/plain');
+        }
+
+        function convertSwerfToWGS84() {
+            // Compatibility wrapper for older saved local copies that may call the misspelled name.
+            convertSwerefToWGS84();
         }
 
         function updateSwerefMap() {

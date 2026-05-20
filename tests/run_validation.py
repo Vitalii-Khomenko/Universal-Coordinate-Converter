@@ -20,6 +20,7 @@ README_PATH = ROOT / "README.md"
 FUNCTIONS_PATH = ROOT / "Function.txt"
 RULES_PATH = ROOT / "rules.txt"
 AGENTS_PATH = ROOT / "AGENTS.md"
+VALIDATION_PATH = ROOT / "VALIDATION.md"
 CYRILLIC_RE = re.compile("[\\u0400-\\u04FF]")
 
 
@@ -344,7 +345,7 @@ class CoordinateRegressionTests(unittest.TestCase):
 
 class ProjectInvariantTests(unittest.TestCase):
     def test_required_project_files_exist(self) -> None:
-        for path in [HTML_PATH, README_PATH, FUNCTIONS_PATH, RULES_PATH, AGENTS_PATH]:
+        for path in [HTML_PATH, README_PATH, FUNCTIONS_PATH, RULES_PATH, AGENTS_PATH, VALIDATION_PATH]:
             self.assertTrue(path.exists(), f"Missing required file: {path.name}")
 
     def test_project_text_files_do_not_contain_cyrillic(self) -> None:
@@ -384,11 +385,29 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("function isMapLibraryReady", html)
         self.assertIn("collectRows('#wgsResultsBody tr', 1, 2, 'WGS84')", html)
 
+    def test_sweref_conversion_function_name_is_corrected(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("function convertSwerefToWGS84", html)
+        self.assertIn("function convertSwerfToWGS84", html)
+        self.assertIn('onclick="convertSwerefToWGS84()"', html)
+
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")
         rules = RULES_PATH.read_text(encoding="utf-8")
         self.assertIn("push the updated project to GitHub", agents)
         self.assertIn("push to GitHub", rules)
+
+    def test_function_notes_do_not_duplicate_executable_formulas(self) -> None:
+        notes = FUNCTIONS_PATH.read_text(encoding="utf-8")
+        self.assertIn("documentation only", notes)
+        self.assertIn("Source of Truth", notes)
+        self.assertNotIn("function sweref99ToWGS84", notes)
+        self.assertNotIn("function wgs84ToSweref99", notes)
+
+    def test_validation_notes_document_regression_baselines(self) -> None:
+        notes = VALIDATION_PATH.read_text(encoding="utf-8")
+        self.assertIn("Current Regression Cases", notes)
+        self.assertIn("Important Limitation", notes)
 
     def test_readme_documents_testing_command(self) -> None:
         readme = README_PATH.read_text(encoding="utf-8")

@@ -1,6 +1,12 @@
-92007690.kml
-92007690.txt
-92007721_iGM.kml
-92007721_iGM.txt
+# Generated conversion exports
+*.kml
+*_converted.txt
+*_results_*.txt
+
+# Local generated or external calculation library files
 proj4-source.js
 proj4.js
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
