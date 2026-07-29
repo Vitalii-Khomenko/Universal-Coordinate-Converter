@@ -6,7 +6,8 @@ currently uses in the browser.
 
 The suite also protects strict input parsing: coordinate and height fields must
 contain digits with one optional decimal point. `PointID` remains free text
-without spaces.
+and may contain spaces when the importer can identify the following coordinate
+pair. Missing GK or SWEREF99 heights are normalized to `0.000`.
 
 Run validation with:
 
@@ -36,6 +37,8 @@ The suite also checks that:
 - The README documents the test command.
 - Safe output helpers are present for table and KML generation.
 - Map dependency checks are present.
+- TXT import recognizes multi-part point IDs and optional projected-coordinate heights.
+- TXT cleanup removes comments, blank lines, unrecognized rows, and trailing fields.
 - The app uses event listeners instead of inline event attributes.
 - The tabs expose semantic tab roles for better keyboard and screen-reader behavior.
 - The project rules require push-to-GitHub after functional updates.

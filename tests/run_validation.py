@@ -25,6 +25,63 @@ CYRILLIC_RE = re.compile("[\\u0400-\\u04FF]")
 STRICT_DECIMAL_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
 
+def normalize_projected_import(text: str, mode: str = "gk") -> tuple[str, dict[str, int]]:
+    """Mirror the browser import recognizer for dependency-free regression tests."""
+    ranges = {
+        "gk": lambda first, second: 2000000 <= first <= 6000000 and 4500000 <= second <= 6500000,
+        "sweref": lambda first, second: 0 <= first <= 1500000 and 5000000 <= second <= 8000000,
+    }
+    plausible_pair = ranges[mode]
+    normalized_lines: list[str] = []
+    summary = {
+        "imported": 0,
+        "comments": 0,
+        "invalid": 0,
+        "defaulted_height": 0,
+        "multi_part_id": 0,
+        "extra_fields": 0,
+    }
+
+    for raw_line in text.splitlines():
+        line = raw_line.lstrip("\ufeff").strip()
+        if not line or line.startswith("#") or line.startswith("//"):
+            summary["comments"] += 1
+            continue
+        line = re.sub(r"\s+#.*$", "", line)
+        line = re.sub(r"\s+//.*$", "", line).strip()
+        tokens = [token for token in re.split(r"[\s;|]+", line) if token]
+        coordinate_index = -1
+        for index in range(1, len(tokens) - 1):
+            if not STRICT_DECIMAL_RE.fullmatch(tokens[index]) or not STRICT_DECIMAL_RE.fullmatch(tokens[index + 1]):
+                continue
+            first = float(tokens[index])
+            second = float(tokens[index + 1])
+            if plausible_pair(first, second):
+                coordinate_index = index
+                break
+        if coordinate_index < 0:
+            summary["invalid"] += 1
+            continue
+
+        point_id = " ".join(tokens[:coordinate_index])
+        height_index = coordinate_index + 2
+        if height_index < len(tokens) and STRICT_DECIMAL_RE.fullmatch(tokens[height_index]):
+            height = tokens[height_index]
+            consumed = height_index + 1
+        else:
+            height = "0.000"
+            consumed = height_index
+            summary["defaulted_height"] += 1
+        normalized_lines.append(
+            "\t".join([point_id, tokens[coordinate_index], tokens[coordinate_index + 1], height])
+        )
+        summary["imported"] += 1
+        summary["multi_part_id"] += int(coordinate_index > 1)
+        summary["extra_fields"] += max(0, len(tokens) - consumed)
+
+    return "\n".join(normalized_lines), summary
+
+
 def pot2wgs(lng: float, lat: float) -> dict[str, float]:
     dx = 598.1
     dy = 73.7
@@ -349,6 +406,55 @@ class CoordinateRegressionTests(unittest.TestCase):
         self.assertEqual(result, {})
 
 
+class ImportParserRegressionTests(unittest.TestCase):
+    def test_projected_import_normalizes_optional_height_and_multi_part_ids(self) -> None:
+        fixture = "\n".join(
+            [
+                "# Coordinate list",
+                "1503AK00282 3464841.4934 5894136.4401",
+                "HP 14-1 3463926.80000 5899789.90000 3.7208",
+                "14-23 LI;3464242.68630;5900178.16710;3.9051;remove-me",
+                "Unrecognized heading",
+            ]
+        )
+        normalized, summary = normalize_projected_import(fixture)
+        self.assertEqual(
+            normalized.splitlines(),
+            [
+                "1503AK00282\t3464841.4934\t5894136.4401\t0.000",
+                "HP 14-1\t3463926.80000\t5899789.90000\t3.7208",
+                "14-23 LI\t3464242.68630\t5900178.16710\t3.9051",
+            ],
+        )
+        self.assertEqual(summary["imported"], 3)
+        self.assertEqual(summary["comments"], 1)
+        self.assertEqual(summary["invalid"], 1)
+        self.assertEqual(summary["defaulted_height"], 1)
+        self.assertEqual(summary["multi_part_id"], 2)
+        self.assertEqual(summary["extra_fields"], 1)
+
+    def test_historical_33_error_file_shape_imports_without_invalid_rows(self) -> None:
+        lines = [f"# Header {index}" for index in range(8)]
+        lines.extend(
+            f"NOHEIGHT-{index} {3464000 + index}.1000 {5894000 + index}.2000"
+            for index in range(16)
+        )
+        lines.extend(
+            f"POINT-{index} DETAIL {3464100 + index}.1000 {5894100 + index}.2000 5.000"
+            for index in range(17)
+        )
+        lines.extend(
+            f"STANDARD-{index} {3464200 + index}.1000 {5894200 + index}.2000 5.000"
+            for index in range(164)
+        )
+        _, summary = normalize_projected_import("\n".join(lines))
+        self.assertEqual(summary["imported"], 197)
+        self.assertEqual(summary["comments"], 8)
+        self.assertEqual(summary["invalid"], 0)
+        self.assertEqual(summary["defaulted_height"], 16)
+        self.assertEqual(summary["multi_part_id"], 17)
+
+
 class ProjectInvariantTests(unittest.TestCase):
     def test_required_project_files_exist(self) -> None:
         for path in [HTML_PATH, README_PATH, FUNCTIONS_PATH, RULES_PATH, AGENTS_PATH, VALIDATION_PATH]:
@@ -421,14 +527,24 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("const STRICT_DECIMAL_PATTERN", html)
         self.assertIn("function parseStrictDecimal", html)
         self.assertIn("Use digits and one optional decimal point only.", html)
-        self.assertIn("parseStrictDecimal(x)", html)
-        self.assertIn("parseStrictDecimal(lat)", html)
+        self.assertIn("parseStrictDecimal(tokens[index])", html)
+        self.assertIn("parseStrictDecimal(firstText)", html)
+        self.assertIn("parseStrictDecimal(heightText)", html)
         self.assertTrue(STRICT_DECIMAL_RE.fullmatch("3563449.97359"))
         self.assertTrue(STRICT_DECIMAL_RE.fullmatch("0.000"))
         self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("35634d49.97359"))
         self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("5\u0432937098.35143"))
         self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("59,3293"))
         self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("59.32.93"))
+
+    def test_html_normalizes_tolerant_txt_imports(self) -> None:
+        html = HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("function parseCoordinateLine", html)
+        self.assertIn("function normalizeImportedCoordinateText", html)
+        self.assertIn("function showImportStatus", html)
+        self.assertIn("heightText = '0.000'", html)
+        self.assertIn("multi-part point ID(s) were preserved.", html)
+        self.assertIn("trailing field(s) were removed.", html)
 
     def test_html_includes_mobile_ux_helpers(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8")

@@ -416,7 +416,7 @@
         <div id="gk2wgs" class="tab-content active" role="tabpanel" aria-labelledby="tab-gk2wgs">
             <div class="input-form">
                 <div class="form-group">
-                    <div class="input-description">Enter: <b>PointID Easting Northing Height</b> (Gauss-Krüger, Bessel)</div>
+                    <div class="input-description">Enter: <b>PointID Easting Northing [Height]</b> (Gauss-Krüger, Bessel). Missing height defaults to 0.000.</div>
                     <pre class="sample-block">1029 3568189.267 5657692.868 321.609</pre>
                     <textarea id="coordinates" rows="10" placeholder="Example:\n1029 3568189.267 5657692.868 321.609"></textarea>
                 </div>
@@ -494,7 +494,7 @@
         <div id="sweref2wgs" class="tab-content" role="tabpanel" aria-labelledby="tab-sweref2wgs">
             <div class="input-form">
                 <div class="form-group">
-                    <div class="input-description">Enter: <b>PointID Easting Northing Height</b> (SWEREF99 18 00, EPSG:3011)</div>
+                    <div class="input-description">Enter: <b>PointID Easting Northing [Height]</b> (SWEREF99 18 00, EPSG:3011). Missing height defaults to 0.000.</div>
                     <pre class="sample-block">1029 153905.093 6579354.449 0.000</pre>
                     <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 153905.093 6579354.449 0.000"></textarea>
                 </div>
@@ -812,6 +812,199 @@
             return isFinite(number) ? number : null;
         }
 
+        const IMPORT_MODE_CONFIG = {
+            gk: {
+                requiresHeight: true,
+                firstName: 'Easting',
+                secondName: 'Northing',
+                isPlausiblePair: (first, second) =>
+                    first >= 2000000 && first <= 6000000 &&
+                    second >= 4500000 && second <= 6500000
+            },
+            sweref: {
+                requiresHeight: true,
+                firstName: 'Easting',
+                secondName: 'Northing',
+                isPlausiblePair: (first, second) =>
+                    first >= 0 && first <= 1500000 &&
+                    second >= 5000000 && second <= 8000000
+            },
+            wgs: {
+                requiresHeight: false,
+                firstName: 'Latitude',
+                secondName: 'Longitude',
+                isPlausiblePair: (first, second) =>
+                    first >= 0 && first <= 90 &&
+                    second >= 0 && second <= 180
+            }
+        };
+
+        function cleanCoordinateLine(line) {
+            const trimmed = String(line)
+                .replace(/^\uFEFF/, '')
+                .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ')
+                .trim();
+            if (!trimmed) return { content: '', kind: 'blank' };
+            if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
+                return { content: '', kind: 'comment' };
+            }
+            const withoutInlineComment = trimmed
+                .replace(/\s+#.*$/, '')
+                .replace(/\s+\/\/.*$/, '')
+                .trim();
+            return withoutInlineComment
+                ? { content: withoutInlineComment, kind: 'data' }
+                : { content: '', kind: 'comment' };
+        }
+
+        function parseCoordinateLine(line, mode, lineNumber) {
+            const config = IMPORT_MODE_CONFIG[mode];
+            const cleaned = cleanCoordinateLine(line);
+            if (cleaned.kind !== 'data') {
+                return { skip: true, skipKind: cleaned.kind };
+            }
+            if (!config) {
+                return { error: `Line ${lineNumber}: Unsupported coordinate import mode.` };
+            }
+
+            const tokens = cleaned.content.split(/[\s;|]+/).filter(Boolean);
+            let coordinateIndex = -1;
+            for (let index = 1; index < tokens.length - 1; index++) {
+                const first = parseStrictDecimal(tokens[index]);
+                const second = parseStrictDecimal(tokens[index + 1]);
+                if (first !== null && second !== null && config.isPlausiblePair(first, second)) {
+                    coordinateIndex = index;
+                    break;
+                }
+            }
+
+            // Preserve the legacy standard layout even when coordinates are
+            // outside the practical-area ranges used for flexible recognition.
+            if (
+                coordinateIndex === -1 &&
+                tokens.length >= 3 &&
+                parseStrictDecimal(tokens[1]) !== null &&
+                parseStrictDecimal(tokens[2]) !== null
+            ) {
+                coordinateIndex = 1;
+            }
+
+            if (coordinateIndex === -1) {
+                if (tokens.length >= 3) {
+                    const numericError = getStrictDecimalError(lineNumber, [
+                        { name: config.firstName, value: tokens[1] },
+                        { name: config.secondName, value: tokens[2] }
+                    ]);
+                    if (numericError) return { error: numericError };
+                }
+                return {
+                    error: `Line ${lineNumber}: Could not identify ${config.firstName} and ${config.secondName}.`
+                };
+            }
+
+            const pointID = tokens.slice(0, coordinateIndex).join(' ').trim();
+            if (!pointID) {
+                return { error: `Line ${lineNumber}: PointID is missing.` };
+            }
+
+            const firstText = tokens[coordinateIndex];
+            const secondText = tokens[coordinateIndex + 1];
+            let consumedTokens = coordinateIndex + 2;
+            let heightText = null;
+            let defaultedHeight = false;
+            if (config.requiresHeight) {
+                if (
+                    tokens.length > consumedTokens &&
+                    parseStrictDecimal(tokens[consumedTokens]) !== null
+                ) {
+                    heightText = tokens[consumedTokens];
+                    consumedTokens++;
+                } else {
+                    heightText = '0.000';
+                    defaultedHeight = true;
+                }
+            }
+
+            return {
+                pointID,
+                firstText,
+                secondText,
+                firstValue: parseStrictDecimal(firstText),
+                secondValue: parseStrictDecimal(secondText),
+                heightText,
+                heightValue: heightText === null ? null : parseStrictDecimal(heightText),
+                defaultedHeight,
+                multiPartPointID: coordinateIndex > 1,
+                extraFieldCount: Math.max(0, tokens.length - consumedTokens)
+            };
+        }
+
+        function normalizeImportedCoordinateText(text, mode) {
+            const config = IMPORT_MODE_CONFIG[mode];
+            const normalizedLines = [];
+            const summary = {
+                importedCount: 0,
+                blankCount: 0,
+                commentCount: 0,
+                invalidCount: 0,
+                defaultedHeightCount: 0,
+                multiPartPointIdCount: 0,
+                extraFieldCount: 0
+            };
+
+            String(text).split(/\r?\n/).forEach((line, index) => {
+                const parsed = parseCoordinateLine(line, mode, index + 1);
+                if (parsed.skip) {
+                    if (parsed.skipKind === 'comment') summary.commentCount++;
+                    else summary.blankCount++;
+                    return;
+                }
+                if (parsed.error) {
+                    summary.invalidCount++;
+                    return;
+                }
+
+                const fields = [parsed.pointID, parsed.firstText, parsed.secondText];
+                if (config.requiresHeight) fields.push(parsed.heightText);
+                normalizedLines.push(fields.join('\t'));
+                summary.importedCount++;
+                if (parsed.defaultedHeight) summary.defaultedHeightCount++;
+                if (parsed.multiPartPointID) summary.multiPartPointIdCount++;
+                summary.extraFieldCount += parsed.extraFieldCount;
+            });
+
+            return { text: normalizedLines.join('\n'), summary };
+        }
+
+        function showImportStatus(statusId, summary) {
+            const removedCount = summary.blankCount + summary.commentCount + summary.invalidCount;
+            const headline =
+                `Imported: ${summary.importedCount} | Removed non-data lines: ${removedCount} | ` +
+                `Default heights: ${summary.defaultedHeightCount}`;
+            const details = [];
+            if (summary.defaultedHeightCount) {
+                details.push(`${summary.defaultedHeightCount} row(s) had no height; 0.000 was added.`);
+            }
+            if (summary.multiPartPointIdCount) {
+                details.push(`${summary.multiPartPointIdCount} multi-part point ID(s) were preserved.`);
+            }
+            if (summary.extraFieldCount) {
+                details.push(`${summary.extraFieldCount} trailing field(s) were removed.`);
+            }
+            if (summary.invalidCount) {
+                details.push(`${summary.invalidCount} unrecognized line(s) were removed.`);
+            }
+            if (!summary.importedCount) {
+                setStatus(statusId, 'error', [headline, 'No coordinate records were recognized in the file.']);
+                return;
+            }
+            const type =
+                summary.defaultedHeightCount || summary.extraFieldCount || summary.invalidCount
+                    ? 'warning'
+                    : 'success';
+            setStatus(statusId, type, [headline, ...details]);
+        }
+
         function getStrictDecimalError(lineNumber, fields) {
             const invalidFields = fields
                 .filter(field => parseStrictDecimal(field.value) === null)
@@ -1095,30 +1288,21 @@
             const errors = [];
             const warnings = [];
             let convertedCount = 0;
-            
+
             lines.forEach((line, idx) => {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return;
-                
-                const parts = trimmed.split(/\s+/);
-                if (parts.length < 4) {
-                    errors.push(`Line ${idx+1}: Not enough values (expected PointID Easting Northing Height)`);
+                const parsed = parseCoordinateLine(line, 'sweref', idx + 1);
+                if (parsed.skip) return;
+                if (parsed.error) {
+                    errors.push(parsed.error);
                     return;
                 }
-                
-                const [pointID, x, y, height] = parts;
-                const numericError = getStrictDecimalError(idx + 1, [
-                    { name: 'Easting', value: x },
-                    { name: 'Northing', value: y },
-                    { name: 'Height', value: height }
-                ]);
-                if (numericError) {
-                    errors.push(numericError);
-                    return;
+                if (parsed.defaultedHeight) {
+                    warnings.push(`Line ${idx + 1}: Height was missing; 0.000 was used.`);
                 }
-                const xNum = parseStrictDecimal(x);
-                const yNum = parseStrictDecimal(y);
-                const hNum = parseStrictDecimal(height);
+                const pointID = parsed.pointID;
+                const xNum = parsed.firstValue;
+                const yNum = parsed.secondValue;
+                const hNum = parsed.heightValue;
                 
                 try {
                     const { lat, lng } = sweref99ToWGS84(xNum, yNum);
@@ -1152,32 +1336,13 @@
         }
 
         function handleSwerefFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!isTxtFile(file)) {
-                alert('Please select a text file (.txt)');
-                event.target.value = '';
-                return;
-            }
-            
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File too large. Maximum size: 5MB');
-                event.target.value = '';
-                return;
-            }
-            
-            lastSwerefImportFileName = file.name;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('swerefCoordinates').value = e.target.result;
-            };
-            reader.onerror = function() {
-                alert('Error reading file');
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-            event.target.value = '';
+            importCoordinateTextFile(
+                event,
+                'sweref',
+                'swerefCoordinates',
+                'swerefStatus',
+                fileName => { lastSwerefImportFileName = fileName; }
+            );
         }
 
         function saveSwerefToTxt() {
@@ -1233,24 +1398,15 @@
             const warnings = [];
             let convertedCount = 0;
             lines.forEach((line, idx) => {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return;
-                const parts = trimmed.split(/\s+/);
-                if (parts.length < 3) {
-                    errors.push(`Line ${idx+1}: Not enough values (expected PointID Latitude Longitude)`);
+                const parsed = parseCoordinateLine(line, 'wgs', idx + 1);
+                if (parsed.skip) return;
+                if (parsed.error) {
+                    errors.push(parsed.error);
                     return;
                 }
-                const [pointID, lat, lng] = parts;
-                const numericError = getStrictDecimalError(idx + 1, [
-                    { name: 'Latitude', value: lat },
-                    { name: 'Longitude', value: lng }
-                ]);
-                if (numericError) {
-                    errors.push(numericError);
-                    return;
-                }
-                const latNum = parseStrictDecimal(lat);
-                const lngNum = parseStrictDecimal(lng);
+                const pointID = parsed.pointID;
+                const latNum = parsed.firstValue;
+                const lngNum = parsed.secondValue;
                 try {
                     let result;
                     if (targetSystem === 'sweref99') {
@@ -1401,32 +1557,13 @@
         }
 
         function handleWGSFileImport(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            if (!isTxtFile(file)) {
-                alert('Please select a text file (.txt)');
-                event.target.value = '';
-                return;
-            }
-            
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File too large. Maximum size: 5MB');
-                event.target.value = '';
-                return;
-            }
-            
-            lastWgsImportFileName = file.name;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('wgsCoordinates').value = e.target.result;
-            };
-            reader.onerror = function() {
-                alert('Error reading file');
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-            event.target.value = '';
+            importCoordinateTextFile(
+                event,
+                'wgs',
+                'wgsCoordinates',
+                'wgsStatus',
+                fileName => { lastWgsImportFileName = fileName; }
+            );
         }
 
         function saveToTxt() {
@@ -1506,26 +1643,19 @@
             const warnings = [];
             let convertedCount = 0;
             lines.forEach((line, idx) => {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return;
-                const parts = trimmed.split(/\s+/);
-                if (parts.length < 4) {
-                    errors.push(`Line ${idx+1}: Not enough values (expected PointID Easting Northing Height)`);
+                const parsed = parseCoordinateLine(line, 'gk', idx + 1);
+                if (parsed.skip) return;
+                if (parsed.error) {
+                    errors.push(parsed.error);
                     return;
                 }
-                const [pointID, x, y, height] = parts;
-                const numericError = getStrictDecimalError(idx + 1, [
-                    { name: 'Easting', value: x },
-                    { name: 'Northing', value: y },
-                    { name: 'Height', value: height }
-                ]);
-                if (numericError) {
-                    errors.push(numericError);
-                    return;
+                if (parsed.defaultedHeight) {
+                    warnings.push(`Line ${idx + 1}: Height was missing; 0.000 was used.`);
                 }
-                const xNum = parseStrictDecimal(x);
-                const yNum = parseStrictDecimal(y);
-                const hNum = parseStrictDecimal(height);
+                const pointID = parsed.pointID;
+                const xNum = parsed.firstValue;
+                const yNum = parsed.secondValue;
+                const hNum = parsed.heightValue;
                 try {
                     const { lat, lng } = gk2geo(xNum, yNum);
                     resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
@@ -1573,7 +1703,7 @@
         let lastWgsImportFileName = null;
         let lastSwerefImportFileName = null;
 
-        function handleFileImport(event) {
+        function importCoordinateTextFile(event, mode, textareaId, statusId, rememberFileName) {
             const file = event.target.files[0];
             if (!file) return;
             if (!isTxtFile(file)) {
@@ -1586,10 +1716,12 @@
                 event.target.value = '';
                 return;
             }
-            lastGkImportFileName = file.name;
+            rememberFileName(file.name);
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('coordinates').value = e.target.result;
+                const normalized = normalizeImportedCoordinateText(e.target.result, mode);
+                document.getElementById(textareaId).value = normalized.text;
+                showImportStatus(statusId, normalized.summary);
             };
             reader.onerror = function() {
                 alert('Error reading file');
@@ -1597,6 +1729,16 @@
             };
             reader.readAsText(file);
             event.target.value = '';
+        }
+
+        function handleFileImport(event) {
+            importCoordinateTextFile(
+                event,
+                'gk',
+                'coordinates',
+                'gkStatus',
+                fileName => { lastGkImportFileName = fileName; }
+            );
         }
 
         function exportKML() {

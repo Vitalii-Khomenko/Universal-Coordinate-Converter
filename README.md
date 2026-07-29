@@ -21,6 +21,7 @@ Web-based tool for converting coordinates between supported systems, with map vi
 - Dynamic table headers and export filenames.
 - Inline input validation feedback with compact conversion, error, and warning counts.
 - Strict numeric validation rejects letters, commas, and mixed text in coordinate fields.
+- Tolerant TXT cleanup recognizes multi-part point IDs, removes non-data lines and trailing fields, and supplies `0.000` when projected-coordinate height is missing.
 - KML export includes WGS84 coordinates from all result tables, including WGS84-to-target input rows.
 - Imported point IDs are written safely to tables and KML output.
 - Polyfills for legacy browser math functions.
@@ -53,13 +54,13 @@ Each conversion tab includes a visible sample line and a **Copy Results** button
 
 **Gauß-Krüger to WGS84:**
 ```
-PointID Easting Northing Height
+PointID Easting Northing [Height]
 1029 3568189.267 5657692.868 321.609
 ```
 
 **SWEREF99 18 00 to WGS84:**
 ```
-PointID Easting Northing Height
+PointID Easting Northing [Height]
 1029 153905.093 6579354.449 0.000
 ```
 
@@ -73,7 +74,11 @@ PointID Latitude Longitude
 *Target system (GK or SWEREF99) is selected via dropdown.*
 
 Blank lines and lines starting with `#` or `//` are ignored during import and conversion.
-Point IDs may contain any text without spaces. Coordinate and height fields must contain digits with one optional decimal point, for example `3568189.267`.
+During TXT import, comment lines, blank lines, and unrecognized headers are removed from the input area. Whitespace, tabs, semicolons, and vertical bars are accepted as field separators. The importer identifies plausible coordinate pairs, so multi-part point IDs such as `HP 14-1` are preserved. Trailing fields after the supported values are removed.
+
+Height is optional for GK and SWEREF99 input. A missing height is normalized to `0.000`; height is retained for output but does not affect the horizontal transformation. The import status reports recognized records, removed non-data lines, defaulted heights, preserved multi-part IDs, and removed trailing fields.
+
+Coordinate and height fields must contain digits with one optional decimal point, for example `3568189.267`. Decimal commas and mixed text inside numeric fields are not accepted.
 
 ## System Requirements
 
@@ -114,6 +119,7 @@ The project owner has manually checked the current converter output against actu
 - KML export includes points from GK-to-WGS84, SWEREF99-to-WGS84, and WGS84-to-target results
 - Map controls show a clear message if the external map library is unavailable
 - Batch conversion feedback is shown inline instead of interrupting smartphone workflows with conversion-error popups
+- TXT import normalizes recognized coordinate records before conversion and reports all cleanup decisions
 - Coordinate input is parsed strictly, so mixed values such as `35634d49.97359` are rejected instead of being partially converted
 - Result tables are horizontally scrollable on small screens
 - Standard geodetic formulas for all conversions
