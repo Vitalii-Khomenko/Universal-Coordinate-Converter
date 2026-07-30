@@ -235,7 +235,7 @@ function sweref99ToWGS84(easting, northing) {
     var e1_3 = e1_2 * e1;
     var e1_4 = e1_3 * e1;
 
-    var fp = mu + (3*e1/2 - 27*e1_3/32) * Math.sin(2*mu) 
+    var fp = mu + (3*e1/2 - 27*e1_3/32) * Math.sin(2*mu)
                + (21*e1_2/16 - 55*e1_4/32) * Math.sin(4*mu)
                + (151*e1_3/96) * Math.sin(6*mu)
                + (1097*e1_4/512) * Math.sin(8*mu);
@@ -264,7 +264,7 @@ function sweref99ToWGS84(easting, northing) {
               + (61 + 90*tan2_fp + 298*c1 + 45*tan4_fp - 252*e2*cos_fp*cos_fp - 3*c1_2) * d6/720);
 
     // Calculate longitude
-    var lon = lon0 + (d - (1 + 2*tan2_fp + c1) * d3/6 
+    var lon = lon0 + (d - (1 + 2*tan2_fp + c1) * d3/6
                    + (5 - 2*c1 + 28*tan2_fp - 3*c1_2 + 8*e2*cos_fp*cos_fp + 24*tan4_fp) * d5/120) / cos_fp;
 
     // Convert to degrees
