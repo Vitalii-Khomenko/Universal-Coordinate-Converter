@@ -20,6 +20,9 @@ Web-based tool for converting coordinates between supported systems, with map vi
 - Google Maps links for each point.
 - Dynamic table headers and export filenames.
 - Inline input validation feedback with compact conversion, error, and warning counts.
+- GeoMonitoring Interface Standard with consistent laptop and smartphone workflows.
+- Explicit source/result stages, guided samples, result counts, and useful empty states.
+- Clear primary, secondary, and quiet action hierarchy with 44px touch targets.
 - Strict numeric validation rejects letters, commas, and mixed text in coordinate fields.
 - Tolerant TXT cleanup recognizes multi-part point IDs, removes non-data lines and trailing fields, and supplies `0.000` when projected-coordinate height is missing.
 - KML export includes WGS84 coordinates from all result tables, including WGS84-to-target input rows.
@@ -103,6 +106,7 @@ The project owner has manually checked the current converter output against actu
 ```text
 index.html                                  — editable application structure
 css/style.css                               — responsive styles
+DESIGN_SYSTEM.md                            — GeoMonitoring interface rules and design tokens
 js/transformations.js                       — coordinate formulas and math helpers
 js/app.js                                   — parsing, UI, import/export, and maps
 universal-coordinate-converter.html         — stable standalone field release
@@ -131,7 +135,9 @@ and does not overwrite the stable root-level field release.
 
 ## Technical Notes
 
-- UI: Tabs for each conversion direction, dropdown for WGS84 target
+- UI: Compact workflow tabs, two-stage source/result panels, and a dropdown for the WGS84 target
+- Design: Shared GeoMonitoring tokens and component rules are documented in `DESIGN_SYSTEM.md`
+- Empty result states explain the next action; copy and download controls activate only when results exist
 - Table headers and export filenames adjust to selected system
 - Each conversion workflow keeps its own imported TXT filename for exports
 - KML export includes points from GK-to-WGS84, SWEREF99-to-WGS84, and WGS84-to-target results

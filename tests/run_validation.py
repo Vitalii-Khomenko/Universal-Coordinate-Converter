@@ -23,6 +23,7 @@ STYLE_PATH = ROOT / "css" / "style.css"
 TRANSFORMATIONS_PATH = ROOT / "js" / "transformations.js"
 APP_PATH = ROOT / "js" / "app.js"
 README_PATH = ROOT / "README.md"
+DESIGN_SYSTEM_PATH = ROOT / "DESIGN_SYSTEM.md"
 MISSION_PATH = ROOT / "Mission.md"
 FUNCTIONS_PATH = ROOT / "Function.txt"
 RULES_PATH = ROOT / "rules.txt"
@@ -474,6 +475,7 @@ class ProjectInvariantTests(unittest.TestCase):
             TRANSFORMATIONS_PATH,
             APP_PATH,
             README_PATH,
+            DESIGN_SYSTEM_PATH,
             MISSION_PATH,
             FUNCTIONS_PATH,
             RULES_PATH,
@@ -624,6 +626,24 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("function copyResults", html)
         self.assertIn("function getTableAsTsv", html)
         self.assertIn("Swipe table horizontally", html)
+
+    def test_geomonitoring_design_standard_is_applied(self) -> None:
+        source_html = SOURCE_HTML_PATH.read_text(encoding="utf-8")
+        styles = STYLE_PATH.read_text(encoding="utf-8")
+        app = APP_PATH.read_text(encoding="utf-8")
+        standard = DESIGN_SYSTEM_PATH.read_text(encoding="utf-8")
+        self.assertIn("GeoMonitoring Interface Standard", standard)
+        self.assertIn("--primary-700", standard)
+        self.assertIn("44×44", standard)
+        self.assertIn('class="workspace-grid"', source_html)
+        self.assertIn('id="gkEmptyState"', source_html)
+        self.assertIn('id="loadGkSampleButton"', source_html)
+        self.assertNotIn("Dezimalgrad", source_html)
+        self.assertNotIn('placeholder="Example:\\n', source_html)
+        self.assertIn("function updateResultView", app)
+        self.assertIn("map.updateSize()", app)
+        self.assertIn("--primary-700", styles)
+        self.assertIn("min-height: 44px", styles)
 
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")

@@ -9,6 +9,11 @@ contain digits with one optional decimal point. `PointID` remains free text
 and may contain spaces when the importer can identify the following coordinate
 pair. Missing GK or SWEREF99 heights are normalized to `0.000`.
 
+Interface invariants protect the GeoMonitoring design standard, including the
+source/result workspace structure, guided sample loading, result empty states,
+44px control targets, shared design tokens, English terminology, and map
+resizing after a hidden panel becomes visible.
+
 Run validation with:
 
 ```bash

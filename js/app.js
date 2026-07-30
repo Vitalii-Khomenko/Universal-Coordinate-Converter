@@ -327,6 +327,52 @@ function showConversionStatus(statusId, convertedCount, errors, warnings) {
     setStatus(statusId, 'success', summary);
 }
 
+const resultViewConfig = {
+    resultsBody: {
+        emptyId: 'gkEmptyState',
+        wrapId: 'gkTableWrap',
+        countId: 'gkResultCount',
+        actionIds: ['copyGkButton', 'saveGkTxtButton']
+    },
+    wgsResultsBody: {
+        emptyId: 'wgsEmptyState',
+        wrapId: 'wgsTableWrap',
+        countId: 'wgsResultCount',
+        actionIds: ['copyWgsButton', 'saveWgsTxtButton']
+    },
+    swerefResultsBody: {
+        emptyId: 'swerefEmptyState',
+        wrapId: 'swerefTableWrap',
+        countId: 'swerefResultCount',
+        actionIds: ['copySwerefButton', 'saveSwerefTxtButton']
+    }
+};
+
+function updateResultView(bodyId) {
+    const config = resultViewConfig[bodyId];
+    const body = document.getElementById(bodyId);
+    if (!config || !body) return;
+    const rowCount = body.querySelectorAll('tr').length;
+    const isEmpty = rowCount === 0;
+    const emptyState = document.getElementById(config.emptyId);
+    const tableWrap = document.getElementById(config.wrapId);
+    const resultCount = document.getElementById(config.countId);
+    if (emptyState) emptyState.hidden = !isEmpty;
+    if (tableWrap) tableWrap.dataset.empty = String(isEmpty);
+    if (resultCount) resultCount.textContent = `${rowCount} ${rowCount === 1 ? 'point' : 'points'}`;
+    config.actionIds.forEach(actionId => {
+        const action = document.getElementById(actionId);
+        if (action) action.disabled = isEmpty;
+    });
+}
+
+function loadCoordinateSample(textareaId, sample, clearFunction) {
+    clearFunction();
+    const textarea = document.getElementById(textareaId);
+    textarea.value = sample;
+    textarea.focus();
+}
+
 function getTableAsTsv(tableId) {
     const table = document.getElementById(tableId);
     if (!table) return '';
@@ -448,6 +494,7 @@ function convertSwerefToWGS84() {
     });
 
     showConversionStatus('swerefStatus', convertedCount, errors, warnings);
+    updateResultView('swerefResultsBody');
 
     // Update map if available
     if (map && typeof updateMap === 'function') {
@@ -459,6 +506,7 @@ function clearSwerefInput() {
     document.getElementById('swerefCoordinates').value = '';
     document.getElementById('swerefResultsBody').innerHTML = '';
     clearStatus('swerefStatus');
+    updateResultView('swerefResultsBody');
 }
 
 function handleSwerefFileImport(event) {
@@ -566,6 +614,7 @@ function convertWGS84ToTarget() {
         }
     });
     showConversionStatus('wgsStatus', convertedCount, errors, warnings);
+    updateResultView('wgsResultsBody');
     if (map && typeof updateMap === 'function') {
         updateMap();
     }
@@ -674,12 +723,14 @@ function clearInput() {
     document.getElementById('coordinates').value = '';
     document.getElementById('resultsBody').innerHTML = '';
     clearStatus('gkStatus');
+    updateResultView('resultsBody');
 }
 
 function clearWGSInput() {
     document.getElementById('wgsCoordinates').value = '';
     document.getElementById('wgsResultsBody').innerHTML = '';
     clearStatus('wgsStatus');
+    updateResultView('wgsResultsBody');
 }
 
 function handleWGSFileImport(event) {
@@ -791,6 +842,7 @@ function convertCoordinates() {
         }
     });
     showConversionStatus('gkStatus', convertedCount, errors, warnings);
+    updateResultView('resultsBody');
     if (map && typeof updateMap === 'function') {
         updateMap();
     }
@@ -820,7 +872,10 @@ function switchTab(tabId) {
     });
     if (tabId === 'map') {
         if (initMap(true)) {
-            updateMap();
+            requestAnimationFrame(() => {
+                map.updateSize();
+                updateMap();
+            });
         }
     }
 }
@@ -919,6 +974,9 @@ function setupEventListeners() {
     });
 
     document.getElementById('convertGkButton').addEventListener('click', convertCoordinates);
+    document.getElementById('loadGkSampleButton').addEventListener('click', () => {
+        loadCoordinateSample('coordinates', '1029 3568189.267 5657692.868 321.609', clearInput);
+    });
     document.getElementById('clearGkButton').addEventListener('click', clearInput);
     document.getElementById('importGkButton').addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('saveGkTxtButton').addEventListener('click', saveToTxt);
@@ -926,6 +984,13 @@ function setupEventListeners() {
     document.getElementById('fileInput').addEventListener('change', handleFileImport);
 
     document.getElementById('convertWgsButton').addEventListener('click', convertWGS84ToTarget);
+    document.getElementById('loadWgsSampleButton').addEventListener('click', () => {
+        loadCoordinateSample(
+            'wgsCoordinates',
+            '1029 51.05031687 9.971396507\n1030 55.12345678 18.98765432',
+            clearWGSInput
+        );
+    });
     document.getElementById('clearWgsButton').addEventListener('click', clearWGSInput);
     document.getElementById('importWgsButton').addEventListener('click', () => document.getElementById('wgsFileInput').click());
     document.getElementById('saveWgsTxtButton').addEventListener('click', saveWGS84ToTxt);
@@ -933,6 +998,9 @@ function setupEventListeners() {
     document.getElementById('wgsFileInput').addEventListener('change', handleWGSFileImport);
 
     document.getElementById('convertSwerefButton').addEventListener('click', convertSwerefToWGS84);
+    document.getElementById('loadSwerefSampleButton').addEventListener('click', () => {
+        loadCoordinateSample('swerefCoordinates', '1029 153905.093 6579354.449 0.000', clearSwerefInput);
+    });
     document.getElementById('clearSwerefButton').addEventListener('click', clearSwerefInput);
     document.getElementById('importSwerefButton').addEventListener('click', () => document.getElementById('swerefFileInput').click());
     document.getElementById('saveSwerefTxtButton').addEventListener('click', saveSwerefToTxt);
@@ -940,6 +1008,8 @@ function setupEventListeners() {
     document.getElementById('swerefFileInput').addEventListener('change', handleSwerefFileImport);
 
     document.getElementById('exportKmlButton').addEventListener('click', exportKML);
+
+    Object.keys(resultViewConfig).forEach(updateResultView);
 }
 
 document.addEventListener('DOMContentLoaded', setupEventListeners);
