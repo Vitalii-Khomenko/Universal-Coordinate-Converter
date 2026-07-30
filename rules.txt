@@ -50,14 +50,23 @@ Project Development and Publishing Guidelines for Coordinate Transformer
 
 ## 8. Project Structure
    ```
-   universal-coordinate-converter.html  # Main application (self-contained)
-   Function.txt                # Transformation notes and source-of-truth guidance
-   README.md                   # Project documentation
-   VALIDATION.md               # Regression baselines and validation policy
-   tests/run_validation.py     # Regression validation suite
-   .gitignore                  # Git exclusion rules
+   index.html                              # Editable multi-file application
+   css/style.css                           # Responsive presentation
+   js/transformations.js                   # Coordinate formulas
+   js/app.js                               # UI, parsing, import/export, and maps
+   universal-coordinate-converter.html     # Stable standalone field release
+   dist/universal-coordinate-converter.generated.html
+                                              # Generated portable build
+   scripts/build_singlefile_dist.py        # Single-file builder
+   Mission.md                              # Product and architecture mission
+   SECURITY.md                             # Security and deployment policy
+   Function.txt                            # Transformation notes
+   README.md                               # Project documentation
+   VALIDATION.md                           # Regression baselines and policy
+   tests/run_validation.py                 # Regression validation suite
+   .gitignore                              # Git exclusion rules
    ```
 
 
-Last updated: 2025-07-26
+Last updated: 2026-07-30
 

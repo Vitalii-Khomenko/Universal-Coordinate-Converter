@@ -1,8 +1,8 @@
 # Validation Notes
 
-The current test suite is a regression suite for the live implementation in
-`universal-coordinate-converter.html`. It protects the behavior that the app
-currently uses in the browser.
+The current test suite is a regression suite for the maintained implementation
+in `index.html`, `css/`, and `js/`. It also protects the stable root-level
+standalone release and rebuilds the generated portable HTML in `dist/`.
 
 The suite also protects strict input parsing: coordinate and height fields must
 contain digits with one optional decimal point. `PointID` remains free text
@@ -31,7 +31,11 @@ python tests/run_validation.py
 
 The suite also checks that:
 
-- Core conversion functions remain inline in the HTML app.
+- Core conversion functions remain in `js/transformations.js` and in the
+  stable standalone HTML app.
+- The split source loads local CSS and JavaScript in the required order.
+- The builder creates a portable HTML file without modifying the stable
+  root-level field release.
 - No external calculation library such as `proj4` is used by the app.
 - Project text files contain no Cyrillic text.
 - The README documents the test command.

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src https://tile.openstreetmap.org; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <title>Universal Coordinate Converter</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Universal Coordinate Converter</h1>
+        
+        <div class="tabs" role="tablist" aria-label="Conversion modes">
+            <button type="button" class="tab active" id="tab-gk2wgs" data-tab="gk2wgs" role="tab" aria-selected="true" aria-controls="gk2wgs">Gauß-Krüger (Bessel, Potsdam) to Dezimalgrad (WGS84)</button>
+            <button type="button" class="tab" id="tab-wgs2gk" data-tab="wgs2gk" role="tab" aria-selected="false" aria-controls="wgs2gk">WGS84 → Target System</button>
+            <button type="button" class="tab" id="tab-sweref2wgs" data-tab="sweref2wgs" role="tab" aria-selected="false" aria-controls="sweref2wgs">SWEREF99 18 00 → WGS84</button>
+            <button type="button" class="tab" id="tab-map" data-tab="map" role="tab" aria-selected="false" aria-controls="map">Map</button>
+        </div>
+
+        <div id="gk2wgs" class="tab-content active" role="tabpanel" aria-labelledby="tab-gk2wgs">
+            <div class="input-form">
+                <div class="form-group">
+                    <div class="input-description">Enter: <b>PointID Easting Northing [Height]</b> (Gauss-Krüger, Bessel). Missing height defaults to 0.000.</div>
+                    <pre class="sample-block">1029 3568189.267 5657692.868 321.609</pre>
+                    <textarea id="coordinates" rows="10" placeholder="Example:\n1029 3568189.267 5657692.868 321.609"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="button" id="convertGkButton">Convert</button>
+                    <button type="button" id="clearGkButton" class="save-txt">Clear Input</button>
+                    <button type="button" id="importGkButton" class="import-txt">Import TXT</button>
+                    <button type="button" id="saveGkTxtButton" class="save-txt">Save as TXT</button>
+                    <button type="button" id="copyGkButton" class="copy-results">Copy Results</button>
+                </div>
+                <input type="file" id="fileInput" class="hidden-file-input" accept=".txt">
+                <div id="gkStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+            </div>
+            <div class="table-wrap">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>PointID</th>
+                            <th>Easting (GK)</th>
+                            <th>Northing (GK)</th>
+                            <th>Height</th>
+                            <th>Latitude (WGS84)</th>
+                            <th>Longitude (WGS84)</th>
+                            <th>Google Maps</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="wgs2gk" class="tab-content" role="tabpanel" aria-labelledby="tab-wgs2gk">
+            <div class="input-form">
+                <div class="form-group">
+                    <div class="input-description">Enter: <b>PointID Latitude Longitude</b> (WGS84)</div>
+                    <pre class="sample-block">1029 51.05031687 9.971396507
+1030 55.12345678 18.98765432</pre>
+                    <textarea id="wgsCoordinates" rows="10" placeholder="Example:\n1029 51.05031687 9.971396507"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="targetSystem">Target Coordinate System:</label>
+                    <select id="targetSystem" class="target-system-select">
+                        <option value="gk">Gauß-Krüger (GK)</option>
+                        <option value="sweref99">SWEREF99 18 00</option>
+                    </select>
+                </div>
+                <div class="button-group">
+                    <button type="button" id="convertWgsButton" class="reverse-convert">Convert</button>
+                    <button type="button" id="clearWgsButton" class="save-txt">Clear Input</button>
+                    <button type="button" id="importWgsButton" class="import-txt">Import TXT</button>
+                    <button type="button" id="saveWgsTxtButton" class="save-txt">Save as TXT</button>
+                    <button type="button" id="copyWgsButton" class="copy-results">Copy Results</button>
+                </div>
+                <input type="file" id="wgsFileInput" class="hidden-file-input" accept=".txt">
+                <div id="wgsStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+            </div>
+            <div class="table-wrap">
+                <table id="wgsResultsTable">
+                    <thead>
+                        <tr>
+                            <th>PointID</th>
+                            <th>Latitude (WGS84)</th>
+                            <th>Longitude (WGS84)</th>
+                            <th id="eastingHeader">Easting</th>
+                            <th id="northingHeader">Northing</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wgsResultsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sweref2wgs" class="tab-content" role="tabpanel" aria-labelledby="tab-sweref2wgs">
+            <div class="input-form">
+                <div class="form-group">
+                    <div class="input-description">Enter: <b>PointID Easting Northing [Height]</b> (SWEREF99 18 00, EPSG:3011). Missing height defaults to 0.000.</div>
+                    <pre class="sample-block">1029 153905.093 6579354.449 0.000</pre>
+                    <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 153905.093 6579354.449 0.000"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="button" id="convertSwerefButton">Convert</button>
+                    <button type="button" id="clearSwerefButton" class="save-txt">Clear Input</button>
+                    <button type="button" id="importSwerefButton" class="import-txt">Import TXT</button>
+                    <button type="button" id="saveSwerefTxtButton" class="save-txt">Save as TXT</button>
+                    <button type="button" id="copySwerefButton" class="copy-results">Copy Results</button>
+                </div>
+                <input type="file" id="swerefFileInput" class="hidden-file-input" accept=".txt">
+                <div id="swerefStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+            </div>
+            <div class="table-wrap">
+                <table id="swerefResultsTable">
+                    <thead>
+                        <tr>
+                            <th>PointID</th>
+                            <th>Easting (SWEREF99)</th>
+                            <th>Northing (SWEREF99)</th>
+                            <th>Height</th>
+                            <th>Latitude (WGS84)</th>
+                            <th>Longitude (WGS84)</th>
+                            <th>Google Maps</th>
+                        </tr>
+                    </thead>
+                    <tbody id="swerefResultsBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map">
+            <div class="map-container">
+                <div class="map-toolbar">
+                    <button type="button" id="exportKmlButton" class="save-txt">Export as KML</button>
+                </div>
+                <div id="mapContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/transformations.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

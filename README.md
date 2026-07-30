@@ -37,7 +37,8 @@ Web-based tool for converting coordinates between supported systems, with map vi
 
 ## Usage
 
-1. Open `universal-coordinate-converter.html` in your browser (no installation needed).
+1. Open `index.html` with the repository folders intact, or open
+   `dist/universal-coordinate-converter.generated.html` as a portable file.
 2. Select the desired tab:
    - **Gauß-Krüger → WGS84**
    - **WGS84 → GK or SWEREF99** (dropdown)
@@ -99,11 +100,28 @@ The project owner has manually checked the current converter output against actu
 
 ## Project Structure
 
-- `universal-coordinate-converter.html` — main application (all functions in one file)
-- `Function.txt` — transformation notes; the HTML file is the implementation source of truth
-- `VALIDATION.md` — regression baselines and validation policy
-- `tests/run_validation.py` — regression validation suite
-- `README.md` — this documentation
+```text
+index.html                                  — editable application structure
+css/style.css                               — responsive styles
+js/transformations.js                       — coordinate formulas and math helpers
+js/app.js                                   — parsing, UI, import/export, and maps
+universal-coordinate-converter.html         — stable standalone field release
+dist/universal-coordinate-converter.generated.html
+                                            — generated portable application
+scripts/build_singlefile_dist.py            — portable-build script
+Mission.md                                  — product and architecture mission
+SECURITY.md                                 — privacy, security, and deployment policy
+Function.txt                                — transformation notes
+VALIDATION.md                               — regression baselines and validation policy
+tests/run_validation.py                     — regression and structure checks
+AGENTS.md                                   — project instructions for coding agents
+rules.txt                                   — development and publishing rules
+LICENSE                                     — MIT license
+```
+
+The split source uses plain browser scripts and can be opened directly without
+Node, a package manager, or a local server. The builder writes only to `dist/`
+and does not overwrite the stable root-level field release.
 
 ## Performance
 
@@ -126,6 +144,18 @@ The project owner has manually checked the current converter output against actu
 - Input validation with range warnings for SWEREF99 18 00 practical-area checks
 - No installation or server required; runs in browser
 
+## Privacy and Security
+
+- Coordinate data and imported TXT files are processed locally in the browser.
+- The app does not intentionally upload files, use analytics, or store data in
+  a remote service.
+- OpenLayers and map tiles are the only optional network-dependent features.
+- Imported point IDs use text-safe DOM output, and KML names are XML-escaped.
+- A Content Security Policy limits scripts, styles, connections, objects, and
+  form actions.
+
+See `SECURITY.md` for supported deployment and reporting guidance.
+
 ## Testing
 
 Run the validation suite with:
@@ -134,6 +164,19 @@ python tests/run_validation.py
 ```
 
 The suite checks current coordinate-regression baselines and project invariants without external dependencies. See `VALIDATION.md` for the current baselines and the limitation that official geodetic control points are still recommended before changing transformation formulas.
+
+The suite also runs the portable builder and verifies that the generated file
+contains the local CSS and JavaScript while leaving the stable standalone file
+unchanged.
+
+Build the portable single-file application manually with:
+
+```bash
+python scripts/build_singlefile_dist.py
+```
+
+The output is written to
+`dist/universal-coordinate-converter.generated.html`.
 
 ## License
 

@@ -1,16 +1,19 @@
 # Coordinate Transformation Notes
 
 This file is documentation only. The authoritative implementation lives in
-`universal-coordinate-converter.html`.
+`js/transformations.js`; `index.html` and `js/app.js` use those formulas.
 
 Do not copy formulas from this document back into the application. When formula
-logic changes, update the HTML implementation first, run `python
+logic changes, update the split source implementation first, run `python
 tests/run_validation.py`, then update this document with a short description of
 the change.
 
 ## Source of Truth
 
-- Main implementation: `universal-coordinate-converter.html`
+- Transformation implementation: `js/transformations.js`
+- Browser orchestration: `js/app.js`
+- Portable build: `dist/universal-coordinate-converter.generated.html`
+- Stable historical field release: `universal-coordinate-converter.html`
 - Regression tests: `tests/run_validation.py`
 - Validation notes: `VALIDATION.md`
 
@@ -31,7 +34,7 @@ Flow:
 
 Notes:
 
-- The live HTML uses a seven-parameter-style `pot2wgs` transform with translation,
+- The live source uses a seven-parameter-style `pot2wgs` transform with translation,
   rotation, and scale terms.
 - Regression baseline in the current test suite:
   - Input: `3568189.267 5657692.868`
@@ -102,12 +105,12 @@ Before 2026-05-20, this file contained executable-looking JavaScript that did
 not fully match the application:
 
 - `pot2wgs` and `wgs2pot` used different datum shift parameters than the live
-  HTML implementation.
+  source implementation.
 - `wgs84ToSweref99` used a different forward projection algorithm than the live
   HTML implementation.
 
 That duplicate code was removed so maintainers do not accidentally use outdated
-formulas. The HTML file is now the only implementation source.
+formulas. The split JavaScript source is now the only maintained implementation.
 
 ## Validation Policy
 

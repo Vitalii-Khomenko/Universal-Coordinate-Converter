@@ -10,17 +10,27 @@ from __future__ import annotations
 
 import math
 import re
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML_PATH = ROOT / "universal-coordinate-converter.html"
+SOURCE_HTML_PATH = ROOT / "index.html"
+STYLE_PATH = ROOT / "css" / "style.css"
+TRANSFORMATIONS_PATH = ROOT / "js" / "transformations.js"
+APP_PATH = ROOT / "js" / "app.js"
 README_PATH = ROOT / "README.md"
+MISSION_PATH = ROOT / "Mission.md"
 FUNCTIONS_PATH = ROOT / "Function.txt"
 RULES_PATH = ROOT / "rules.txt"
 AGENTS_PATH = ROOT / "AGENTS.md"
 VALIDATION_PATH = ROOT / "VALIDATION.md"
+SECURITY_PATH = ROOT / "SECURITY.md"
+BUILD_SCRIPT_PATH = ROOT / "scripts" / "build_singlefile_dist.py"
+GENERATED_HTML_PATH = ROOT / "dist" / "universal-coordinate-converter.generated.html"
 CYRILLIC_RE = re.compile("[\\u0400-\\u04FF]")
 STRICT_DECIMAL_RE = re.compile(r"^\d+(?:\.\d+)?$")
 
@@ -457,11 +467,26 @@ class ImportParserRegressionTests(unittest.TestCase):
 
 class ProjectInvariantTests(unittest.TestCase):
     def test_required_project_files_exist(self) -> None:
-        for path in [HTML_PATH, README_PATH, FUNCTIONS_PATH, RULES_PATH, AGENTS_PATH, VALIDATION_PATH]:
+        required_paths = [
+            HTML_PATH,
+            SOURCE_HTML_PATH,
+            STYLE_PATH,
+            TRANSFORMATIONS_PATH,
+            APP_PATH,
+            README_PATH,
+            MISSION_PATH,
+            FUNCTIONS_PATH,
+            RULES_PATH,
+            AGENTS_PATH,
+            VALIDATION_PATH,
+            SECURITY_PATH,
+            BUILD_SCRIPT_PATH,
+        ]
+        for path in required_paths:
             self.assertTrue(path.exists(), f"Missing required file: {path.name}")
 
     def test_project_text_files_do_not_contain_cyrillic(self) -> None:
-        checked_suffixes = {".html", ".md", ".txt", ".py"}
+        checked_suffixes = {".html", ".md", ".txt", ".py", ".css", ".js"}
         for path in ROOT.rglob("*"):
             if ".git" in path.parts or not path.is_file() or path.suffix.lower() not in checked_suffixes:
                 continue
@@ -479,6 +504,49 @@ class ProjectInvariantTests(unittest.TestCase):
             "wgs84ToSweref99",
         ]:
             self.assertIn(f"function {function_name}", html)
+
+    def test_split_source_has_expected_boundaries(self) -> None:
+        source_html = SOURCE_HTML_PATH.read_text(encoding="utf-8")
+        transformations = TRANSFORMATIONS_PATH.read_text(encoding="utf-8")
+        app = APP_PATH.read_text(encoding="utf-8")
+        self.assertIn('href="css/style.css"', source_html)
+        self.assertIn('src="js/transformations.js"', source_html)
+        self.assertIn('src="js/app.js"', source_html)
+        self.assertIn("https://tile.openstreetmap.org", source_html)
+        self.assertNotIn("<style>", source_html)
+        self.assertNotIn("function gk2geo", source_html)
+        for function_name in [
+            "gk2geo",
+            "Dezimal2GK",
+            "wgs2pot",
+            "pot2wgs",
+            "sweref99ToWGS84",
+            "wgs84ToSweref99",
+        ]:
+            self.assertIn(f"function {function_name}", transformations)
+        self.assertIn("function setupEventListeners", app)
+        self.assertIn("DOMContentLoaded", app)
+
+    def test_builder_creates_portable_generated_html(self) -> None:
+        stable_before = HTML_PATH.read_bytes()
+        result = subprocess.run(
+            [sys.executable, str(BUILD_SCRIPT_PATH)],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        generated = GENERATED_HTML_PATH.read_text(encoding="utf-8")
+        self.assertIn("Wrote dist", result.stdout)
+        self.assertIn("<style>", generated)
+        self.assertIn("function gk2geo", generated)
+        self.assertIn("function setupEventListeners", generated)
+        self.assertNotIn('href="css/style.css"', generated)
+        self.assertNotIn('src="js/transformations.js"', generated)
+        self.assertNotIn('src="js/app.js"', generated)
+        self.assertIn("script-src 'self' 'unsafe-inline'", generated)
+        self.assertIn("connect-src https://tile.openstreetmap.org", generated)
+        self.assertEqual(stable_before, HTML_PATH.read_bytes())
 
     def test_html_does_not_use_external_calculation_libraries(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8").lower()
