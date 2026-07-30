@@ -1,1822 +1,2641 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Coordinate Converter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0b202a">
+    <meta name="description" content="Offline-first coordinate conversion for geospatial monitoring workflows.">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src https://tile.openstreetmap.org; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <title>Universal Coordinate Converter (Generated Single File)</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background: #f0f0f0;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .tabs {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            gap: 10px;
-            justify-content: flex-start;
-        }
-        .tab {
-            display: inline-block;
-            background: #ddd;
-            color: #222;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 15px;
-            padding: 6px 16px;
-            margin: 0;
-            min-width: 0;
-            min-height: 0;
-            border: none;
-            transition: background 0.2s, color 0.2s;
-            text-align: center;
-            line-height: 1.2;
-            flex: 0 1 auto;
-        }
-        .tab.active {
-            background: #4CAF50;
-            color: white;
-        }
-        @media (max-width: 900px) {
-            .tabs {
-                flex-direction: column;
-                gap: 4px;
-                align-items: stretch;
-            }
-            .tab {
-                width: 100%;
-                font-size: 14px;
-                padding: 6px 0;
-                min-width: 0;
-                min-height: 0;
-                border-radius: 4px;
-                margin: 0;
-                box-sizing: border-box;
-            }
-        }
-        @media (max-width: 600px) {
-            .tab {
-                font-size: 13px;
-                padding: 5px 0;
-            }
-        }
-        .input-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .status-message {
-            border-radius: 4px;
-            line-height: 1.35;
-            padding: 10px 12px;
-        }
-        .status-summary {
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        .status-details {
-            margin: 0;
-            padding-left: 18px;
-        }
-        .status-message.error {
-            background: #ffebee;
-            border: 1px solid #ef9a9a;
-            color: #8a1c1c;
-        }
-        .status-message.warning {
-            background: #fff8e1;
-            border: 1px solid #ffcc80;
-            color: #6f4700;
-        }
-        .status-message.success {
-            background: #e8f5e9;
-            border: 1px solid #a5d6a7;
-            color: #1b5e20;
-        }
-        .form-group {
-            margin-bottom: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .input-description {
-            margin-bottom: 8px;
-            font-size: 1.08em;
-            color: #333;
-            text-align: left;
-        }
-        .sample-block {
-            background: #f7fafc;
-            border: 1px solid #d9e2ec;
-            border-radius: 4px;
-            color: #243b53;
-            font-family: monospace;
-            font-size: 0.95em;
-            line-height: 1.35;
-            margin: 8px 0 0;
-            overflow-x: auto;
-            padding: 8px 10px;
-        }
-        textarea {
-            width: 100%;
-            min-width: 0;
-            resize: vertical;
-            font-size: 1em;
-            font-family: monospace;
-            box-sizing: border-box;
-        }
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 0;
-        }
-        button {
-            flex: 1 1 160px;
-            min-width: 120px;
-            background: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background: #45a049;
-        }
-        button.save-txt {
-            background: #2196F3;
-        }
-        button.save-txt:hover {
-            background: #1976D2;
-        }
-        button.import-txt {
-            background: #9C27B0;
-        }
-        button.import-txt:hover {
-            background: #7B1FA2;
-        }
-        button.copy-results {
-            background: #795548;
-        }
-        button.copy-results:hover {
-            background: #5D4037;
-        }
-        button.reverse-convert {
-            background: #607D8B;
-        }
-        button.reverse-convert:hover {
-            background: #455A64;
-        }
-        #fileInput {
-            display: none;
-        }
-        .hidden-file-input {
-            display: none;
-        }
-        .clipboard-helper {
-            left: -9999px;
-            position: fixed;
-            top: 0;
-        }
-        .target-system-select {
-            padding: 5px;
-            margin: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .map-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .table-wrap {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-            vertical-align: top;
-        }
-        th {
-            background-color: #f5f5f5;
-        }
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        .error {
-            color: red;
-            font-weight: bold;
-        }
-        .map-link {
-            color: #4CAF50;
-            text-decoration: none;
-        }
-        .map-link:hover {
-            text-decoration: underline;
-        }
-        #map {
-            width: 100%;
-            height: 600px;
-            margin-top: 20px;
-        }
-        .map-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        #mapContainer {
-            width: 100%;
-            height: 600px;
-            overflow: hidden;
-        }
-        .ol-viewport {
-            overflow: hidden !important;
-        }
-        .ol-overlay-container {
-            overflow: hidden !important;
-        }
-        .ol-canvas {
-            overflow: hidden !important;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        @media (min-width: 600px) {
-            .input-form {
-                min-width: 340px;
-            }
-            .form-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            textarea {
-                min-height: 120px;
-                height: 2.5em;
-                max-height: 350px;
-            }
-        }
-        @media (min-width: 900px) {
-            .input-form {
-                min-width: 500px;
-            }
-            textarea {
-                min-height: 160px;
-                height: 3.5em;
-                max-height: 400px;
-            }
-        }
-        @media (max-width: 900px) {
-            .container {
-                padding: 0 5px;
-            }
-            .tabs {
-                flex-direction: column;
-                gap: 5px;
-            }
-            .tab {
-                min-width: 100px;
-                padding: 10px 0;
-            }
-            .button-group {
-                flex-direction: row;
-                flex-wrap: wrap;
-                gap: 6px;
-                justify-content: flex-start;
-            }
-            button {
-                width: auto;
-                min-width: 80px;
-                font-size: 14px;
-                padding: 8px 10px;
-                margin: 0;
-                flex: 1 1 120px;
-            }
-            #gk2wgs textarea, #wgs2gk textarea {
-                min-height: 100px;
-                height: 120px;
-                max-height: 200px;
-            }
-        }
-        @media (max-width: 600px) {
-            .input-form, .map-container {
-                padding: 10px;
-            }
-            table, th, td {
-                font-size: 13px;
-                padding: 6px;
-            }
-            #mapContainer {
-                height: 300px;
-            }
-            .button-group {
-                flex-direction: row;
-                flex-wrap: wrap;
-                gap: 4px;
-                justify-content: flex-start;
-            }
-            button {
-                width: auto;
-                min-width: 60px;
-                font-size: 13px;
-                padding: 7px 7px;
-                margin: 0;
-                flex: 1 1 90px;
-            }
-        }
-        @media (max-width: 768px) {
-            body {
-                margin: 10px;
-            }
-            .container {
-                width: 100%;
-                padding: 0;
-            }
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-            .table-wrap {
-                background: white;
-                border-radius: 6px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                margin-bottom: 20px;
-            }
-            .table-wrap table {
-                box-shadow: none;
-                margin-bottom: 0;
-                min-width: 760px;
-            }
-            .table-wrap::before {
-                content: "Swipe table horizontally";
-                color: #52616f;
-                display: block;
-                font-size: 12px;
-                padding: 6px 8px 0;
-            }
-            th, td {
-                padding: 8px;
-                font-size: 14px;
-            }
-            #map {
-                height: 400px;
-            }
-        }
-        @media (hover: none) {
-            button, input[type="text"], textarea, .tab {
-                min-height: 44px;
-            }
-        }
+:root {
+    color-scheme: light;
+    --ink-950: #071a22;
+    --ink-900: #0b202a;
+    --ink-800: #17343e;
+    --ink-700: #2c4a54;
+    --ink-600: #4b6670;
+    --ink-500: #698087;
+    --ink-300: #b8c6ca;
+    --ink-200: #d4dfe2;
+    --ink-100: #e9eff1;
+    --ink-050: #f4f7f8;
+    --surface: #ffffff;
+    --canvas: #eaf0f2;
+    --primary-700: #075f5a;
+    --primary-600: #08756e;
+    --primary-500: #0b8b82;
+    --primary-100: #d9efec;
+    --signal: #f2b84b;
+    --danger-700: #9d2a33;
+    --danger-100: #fbe9eb;
+    --warning-700: #78540d;
+    --warning-100: #fff3d6;
+    --success-700: #17633b;
+    --success-100: #e2f3e9;
+    --shadow-sm: 0 1px 2px rgba(7, 26, 34, 0.08);
+    --shadow-md: 0 12px 32px rgba(7, 26, 34, 0.10);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --content-max: 1440px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+html {
+    min-width: 320px;
+    background: var(--canvas);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--ink-900);
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)),
+        repeating-linear-gradient(0deg, transparent 0 31px, rgba(11, 32, 42, 0.035) 31px 32px),
+        repeating-linear-gradient(90deg, transparent 0 31px, rgba(11, 32, 42, 0.035) 31px 32px),
+        var(--canvas);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+button,
+textarea,
+select {
+    font: inherit;
+}
+
+button,
+summary,
+select {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.site-shell {
+    width: min(100%, var(--content-max));
+    margin: 0 auto;
+    padding: var(--space-6);
+}
+
+.product-header {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-6);
+    overflow: hidden;
+    min-height: 190px;
+    padding: var(--space-8);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background:
+        radial-gradient(circle at 88% 22%, rgba(11, 139, 130, 0.34), transparent 28%),
+        linear-gradient(135deg, var(--ink-950), var(--ink-900) 56%, #0d3840);
+}
+
+.product-header::after {
+    position: absolute;
+    right: -90px;
+    bottom: -170px;
+    width: 390px;
+    height: 390px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 48px rgba(255, 255, 255, 0.025),
+        0 0 0 96px rgba(255, 255, 255, 0.018);
+    content: "";
+    pointer-events: none;
+}
+
+.brand-lockup {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.brand-mark {
+    position: relative;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin-top: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50%;
+}
+
+.brand-mark::before,
+.brand-mark::after,
+.brand-mark span {
+    position: absolute;
+    content: "";
+}
+
+.brand-mark::before {
+    inset: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 50%;
+}
+
+.brand-mark::after {
+    top: 50%;
+    left: 4px;
+    width: 34px;
+    border-top: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.brand-mark span:first-child {
+    top: 4px;
+    left: 50%;
+    height: 34px;
+    border-left: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.brand-mark span:last-child {
+    top: 18px;
+    left: 18px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 0 5px rgba(242, 184, 75, 0.14);
+}
+
+.eyebrow,
+.step-label,
+.tab-kicker {
+    color: var(--primary-500);
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.11em;
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.product-header .eyebrow {
+    color: #71d8cf;
+}
+
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
+}
+
+h1 {
+    max-width: 760px;
+    margin-bottom: var(--space-2);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+}
+
+h2 {
+    margin-bottom: 0;
+    font-size: clamp(1.5rem, 2.5vw, 2.15rem);
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+}
+
+h3 {
+    margin-bottom: 0;
+    font-size: 1.05rem;
+    line-height: 1.3;
+}
+
+.product-subtitle {
+    max-width: 620px;
+    margin-bottom: 0;
+    color: #b9ced4;
+    font-size: 1.02rem;
+}
+
+.trust-badge,
+.system-chip,
+.result-count {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: var(--space-2);
+    min-height: 32px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.trust-badge {
+    position: relative;
+    z-index: 1;
+    color: #d9e8eb;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #61d39f;
+    box-shadow: 0 0 0 4px rgba(97, 211, 159, 0.12);
+}
+
+.app-surface {
+    padding: var(--space-6);
+    border: 1px solid var(--ink-200);
+    border-top: 0;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    background: rgba(244, 247, 248, 0.96);
+    box-shadow: var(--shadow-md);
+}
+
+.mode-navigation {
+    margin-top: 0;
+    margin-bottom: var(--space-8);
+    padding: var(--space-2);
+    border: 1px solid rgba(255, 255, 255, 0.54);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: var(--shadow-md);
+}
+
+.tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-1);
+}
+
+.tab {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    min-height: 62px;
+    padding: 10px 14px;
+    color: var(--ink-700);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.91rem;
+    font-weight: 720;
+    line-height: 1.2;
+    text-align: left;
+    transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.tab:hover {
+    color: var(--ink-950);
+    background: var(--ink-050);
+}
+
+.tab.active {
+    color: var(--primary-700);
+    border-color: var(--primary-100);
+    background: var(--primary-100);
+}
+
+.tab-kicker {
+    margin-bottom: 3px;
+    color: var(--ink-500);
+    font-size: 0.62rem;
+}
+
+.tab.active .tab-kicker {
+    color: var(--primary-600);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: panel-in 180ms ease-out;
+}
+
+@keyframes panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+.section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.section-heading .eyebrow {
+    margin-bottom: var(--space-1);
+}
+
+.system-chip,
+.result-count {
+    color: var(--ink-700);
+    border: 1px solid var(--ink-200);
+    background: var(--surface);
+}
+
+.workspace-grid {
+    display: grid;
+    grid-template-columns: minmax(340px, 0.82fr) minmax(0, 1.38fr);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+.panel {
+    min-width: 0;
+    padding: var(--space-6);
+    border: 1px solid var(--ink-200);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.step-label {
+    display: block;
+    margin-bottom: var(--space-1);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: var(--space-4);
+}
+
+label {
+    margin-bottom: var(--space-1);
+    color: var(--ink-800);
+    font-size: 0.88rem;
+    font-weight: 720;
+}
+
+.field-help {
+    margin-bottom: var(--space-3);
+    color: var(--ink-600);
+    font-size: 0.82rem;
+}
+
+textarea,
+select {
+    width: 100%;
+    color: var(--ink-950);
+    border: 1px solid var(--ink-300);
+    border-radius: var(--radius-sm);
+    outline: none;
+    background: #fbfcfc;
+    box-shadow: inset 0 1px 2px rgba(7, 26, 34, 0.04);
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+textarea {
+    min-height: 210px;
+    padding: 14px;
+    resize: vertical;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+textarea::placeholder {
+    color: #7c9299;
+}
+
+select {
+    min-height: 46px;
+    padding: 9px 12px;
+}
+
+textarea:hover,
+select:hover {
+    border-color: var(--ink-500);
+}
+
+textarea:focus,
+select:focus,
+button:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(11, 139, 130, 0.18);
+}
+
+.target-control {
+    margin-top: var(--space-4);
+}
+
+.format-guide {
+    margin: 0 0 var(--space-5);
+    border-top: 1px solid var(--ink-100);
+    border-bottom: 1px solid var(--ink-100);
+}
+
+.format-guide summary {
+    padding: 11px 2px;
+    color: var(--ink-700);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.sample-block {
+    margin: 0 0 var(--space-3);
+    padding: 10px 12px;
+    overflow-x: auto;
+    color: var(--ink-800);
+    border: 1px solid var(--ink-200);
+    border-radius: var(--radius-sm);
+    background: var(--ink-050);
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.action-bar,
+.result-actions,
+.map-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 104px;
+    min-height: 44px;
+    padding: 9px 15px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.84rem;
+    font-weight: 730;
+    line-height: 1.2;
+    text-align: center;
+    transition: transform 120ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.button:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.button:disabled {
+    color: var(--ink-500);
+    border-color: var(--ink-200);
+    background: var(--ink-050);
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
+.button-primary {
+    flex: 1 1 180px;
+    color: #fff;
+    border-color: var(--primary-700);
+    background: var(--primary-700);
+    box-shadow: 0 4px 12px rgba(7, 95, 90, 0.18);
+}
+
+.button-primary:hover:not(:disabled) {
+    border-color: var(--primary-600);
+    background: var(--primary-600);
+}
+
+.button-secondary {
+    color: var(--ink-800);
+    border-color: var(--ink-300);
+    background: var(--surface);
+}
+
+.button-secondary:hover:not(:disabled),
+.button-quiet:hover:not(:disabled) {
+    color: var(--primary-700);
+    border-color: var(--primary-500);
+    background: var(--primary-100);
+}
+
+.button-quiet {
+    color: var(--ink-600);
+    border-color: transparent;
+    background: transparent;
+}
+
+.button-compact {
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 11px;
+    font-size: 0.78rem;
+}
+
+.hidden-file-input,
+#fileInput {
+    display: none;
+}
+
+.clipboard-helper {
+    position: fixed;
+    top: 0;
+    left: -9999px;
+}
+
+.status-message {
+    margin-top: var(--space-4);
+    padding: 11px 13px;
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.status-summary {
+    font-weight: 750;
+}
+
+.status-details {
+    margin: var(--space-1) 0 0;
+    padding-left: 18px;
+}
+
+.status-message.error {
+    color: var(--danger-700);
+    border-color: #efbdc1;
+    background: var(--danger-100);
+}
+
+.status-message.warning {
+    color: var(--warning-700);
+    border-color: #ead18e;
+    background: var(--warning-100);
+}
+
+.status-message.success {
+    color: var(--success-700);
+    border-color: #abd7bd;
+    background: var(--success-100);
+}
+
+.result-panel {
+    position: relative;
+    min-height: 520px;
+    overflow: hidden;
+}
+
+.result-heading {
+    margin-bottom: var(--space-3);
+}
+
+.result-actions {
+    justify-content: flex-end;
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--ink-100);
+}
+
+.result-empty {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 300px;
+    padding: var(--space-8);
+    color: var(--ink-600);
+    text-align: center;
+}
+
+.result-empty strong {
+    margin-bottom: var(--space-1);
+    color: var(--ink-800);
+    font-size: 0.95rem;
+}
+
+.result-empty span:last-child {
+    font-size: 0.82rem;
+}
+
+.empty-symbol {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    margin-bottom: var(--space-4);
+    color: var(--primary-600);
+    border: 1px solid var(--primary-100);
+    border-radius: 50%;
+    background:
+        linear-gradient(var(--primary-100) 1px, transparent 1px),
+        linear-gradient(90deg, var(--primary-100) 1px, transparent 1px),
+        #f4fbfa;
+    background-size: 9px 9px;
+    font-size: 1.5rem;
+    font-weight: 350;
+}
+
+.table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--ink-200);
+    border-radius: var(--radius-sm);
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap[data-empty="true"] {
+    display: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    font-size: 0.8rem;
+}
+
+th,
+td {
+    padding: 12px 13px;
+    border-bottom: 1px solid var(--ink-100);
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+th {
+    color: var(--ink-600);
+    background: var(--ink-050);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+tbody tr {
+    transition: background 120ms ease;
+}
+
+tbody tr:hover {
+    background: #f4fbfa;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.error {
+    color: var(--danger-700);
+    font-weight: 750;
+}
+
+.map-link {
+    color: var(--primary-700);
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: rgba(7, 95, 90, 0.28);
+    text-underline-offset: 3px;
+}
+
+.map-link:hover {
+    text-decoration-color: currentColor;
+}
+
+.map-panel {
+    padding: var(--space-5);
+    overflow: hidden;
+}
+
+.map-toolbar {
+    justify-content: space-between;
+    margin-bottom: var(--space-4);
+}
+
+.map-toolbar p {
+    margin: 3px 0 0;
+    color: var(--ink-600);
+    font-size: 0.82rem;
+}
+
+#mapContainer {
+    width: 100%;
+    height: min(64vh, 680px);
+    min-height: 420px;
+    overflow: hidden;
+    border: 1px solid var(--ink-200);
+    border-radius: 10px;
+    background: var(--ink-100);
+}
+
+.ol-viewport,
+.ol-overlay-container,
+.ol-canvas {
+    overflow: hidden !important;
+}
+
+.product-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-2) var(--space-2);
+    color: var(--ink-600);
+    font-size: 0.72rem;
+}
+
+@media (max-width: 1040px) {
+    .workspace-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .result-panel {
+        min-height: 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .site-shell {
+        padding: var(--space-3);
+    }
+
+    .product-header {
+        min-height: 220px;
+        padding: var(--space-6);
+    }
+
+    .trust-badge {
+        position: absolute;
+        right: var(--space-5);
+        bottom: 64px;
+    }
+
+    .app-surface {
+        padding: var(--space-3);
+    }
+
+    .mode-navigation {
+        margin-top: 0;
+        margin-bottom: var(--space-6);
+    }
+
+    .tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tab {
+        min-height: 58px;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        margin-bottom: var(--space-4);
+    }
+
+    .panel {
+        padding: var(--space-4);
+    }
+
+    .panel-heading {
+        align-items: flex-start;
+    }
+
+    textarea {
+        min-height: 170px;
+    }
+
+    .action-bar .button-primary {
+        flex-basis: 100%;
+    }
+
+    .table-wrap[data-empty="false"]::before {
+        display: block;
+        padding: 7px 10px;
+        color: var(--ink-600);
+        border-bottom: 1px solid var(--ink-100);
+        background: var(--ink-050);
+        content: "Swipe table horizontally";
+        font-size: 0.7rem;
+    }
+
+    .table-wrap table {
+        min-width: 760px;
+    }
+
+    .result-empty {
+        min-height: 220px;
+    }
+
+    #mapContainer {
+        height: 52vh;
+        min-height: 320px;
+    }
+
+    .product-footer {
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+}
+
+@media (max-width: 460px) {
+    .site-shell {
+        padding: 0;
+    }
+
+    .product-header,
+    .app-surface {
+        border-right: 0;
+        border-left: 0;
+        border-radius: 0;
+    }
+
+    .product-header {
+        min-height: 240px;
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .brand-lockup {
+        gap: var(--space-3);
+    }
+
+    .brand-mark {
+        flex-basis: 38px;
+        width: 38px;
+        height: 38px;
+    }
+
+    .brand-mark::after {
+        left: 3px;
+        width: 30px;
+    }
+
+    .brand-mark span:first-child {
+        top: 3px;
+        height: 30px;
+    }
+
+    .brand-mark span:last-child {
+        top: 15px;
+        left: 15px;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .product-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .trust-badge {
+        right: var(--space-4);
+        bottom: 65px;
+    }
+
+    .app-surface {
+        padding: var(--space-3) var(--space-3) var(--space-5);
+    }
+
+    .mode-navigation {
+        padding: 5px;
+    }
+
+    .tab {
+        min-height: 56px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+
+    .section-heading .system-chip {
+        display: none;
+    }
+
+    .panel {
+        padding: var(--space-4);
+        border-radius: 12px;
+    }
+
+    .panel-heading {
+        gap: var(--space-2);
+    }
+
+    .button {
+        flex: 1 1 calc(50% - var(--space-2));
+        min-width: 0;
+        min-height: 46px;
+    }
+
+    .button-compact {
+        flex: 0 1 auto;
+        min-height: 40px;
+    }
+
+    .result-actions .button {
+        flex: 1 1 0;
+    }
+
+    .product-footer {
+        padding: var(--space-4);
+    }
+}
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Universal Coordinate Converter</h1>
-        
-        <div class="tabs" role="tablist" aria-label="Conversion modes">
-            <button type="button" class="tab active" id="tab-gk2wgs" data-tab="gk2wgs" role="tab" aria-selected="true" aria-controls="gk2wgs">Gauß-Krüger (Bessel, Potsdam) to Dezimalgrad (WGS84)</button>
-            <button type="button" class="tab" id="tab-wgs2gk" data-tab="wgs2gk" role="tab" aria-selected="false" aria-controls="wgs2gk">WGS84 → Target System</button>
-            <button type="button" class="tab" id="tab-sweref2wgs" data-tab="sweref2wgs" role="tab" aria-selected="false" aria-controls="sweref2wgs">SWEREF99 18 00 → WGS84</button>
-            <button type="button" class="tab" id="tab-map" data-tab="map" role="tab" aria-selected="false" aria-controls="map">Map</button>
-        </div>
-
-        <div id="gk2wgs" class="tab-content active" role="tabpanel" aria-labelledby="tab-gk2wgs">
-            <div class="input-form">
-                <div class="form-group">
-                    <div class="input-description">Enter: <b>PointID Easting Northing [Height]</b> (Gauss-Krüger, Bessel). Missing height defaults to 0.000.</div>
-                    <pre class="sample-block">1029 3568189.267 5657692.868 321.609</pre>
-                    <textarea id="coordinates" rows="10" placeholder="Example:\n1029 3568189.267 5657692.868 321.609"></textarea>
+    <div class="site-shell">
+        <header class="product-header">
+            <div class="brand-lockup">
+                <div class="brand-mark" aria-hidden="true">
+                    <span></span><span></span>
                 </div>
-                <div class="button-group">
-                    <button type="button" id="convertGkButton">Convert</button>
-                    <button type="button" id="clearGkButton" class="save-txt">Clear Input</button>
-                    <button type="button" id="importGkButton" class="import-txt">Import TXT</button>
-                    <button type="button" id="saveGkTxtButton" class="save-txt">Save as TXT</button>
-                    <button type="button" id="copyGkButton" class="copy-results">Copy Results</button>
+                <div>
+                    <div class="eyebrow">GeoMonitoring Toolkit</div>
+                    <h1>Universal Coordinate Converter</h1>
+                    <p class="product-subtitle">Survey-grade coordinate workflows, processed locally in your browser.</p>
                 </div>
-                <input type="file" id="fileInput" class="hidden-file-input" accept=".txt">
-                <div id="gkStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
-            <div class="table-wrap">
-                <table id="resultsTable">
-                    <thead>
-                        <tr>
-                            <th>PointID</th>
-                            <th>Easting (GK)</th>
-                            <th>Northing (GK)</th>
-                            <th>Height</th>
-                            <th>Latitude (WGS84)</th>
-                            <th>Longitude (WGS84)</th>
-                            <th>Google Maps</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsBody">
-                    </tbody>
-                </table>
+            <div class="trust-badge">
+                <span class="status-dot" aria-hidden="true"></span>
+                Offline core
             </div>
-        </div>
+        </header>
 
-        <div id="wgs2gk" class="tab-content" role="tabpanel" aria-labelledby="tab-wgs2gk">
-            <div class="input-form">
-                <div class="form-group">
-                    <div class="input-description">Enter: <b>PointID Latitude Longitude</b> (WGS84)</div>
-                    <pre class="sample-block">1029 51.05031687 9.971396507
+        <main class="app-surface">
+            <nav class="mode-navigation" aria-label="Coordinate tools">
+                <div class="tabs" role="tablist" aria-label="Conversion modes">
+                    <button type="button" class="tab active" id="tab-gk2wgs" data-tab="gk2wgs" role="tab" aria-selected="true" aria-controls="gk2wgs">
+                        <span class="tab-kicker">Convert</span>
+                        <span>GK → WGS84</span>
+                    </button>
+                    <button type="button" class="tab" id="tab-wgs2gk" data-tab="wgs2gk" role="tab" aria-selected="false" aria-controls="wgs2gk" tabindex="-1">
+                        <span class="tab-kicker">Convert</span>
+                        <span>WGS84 → Target</span>
+                    </button>
+                    <button type="button" class="tab" id="tab-sweref2wgs" data-tab="sweref2wgs" role="tab" aria-selected="false" aria-controls="sweref2wgs" tabindex="-1">
+                        <span class="tab-kicker">Convert</span>
+                        <span>SWEREF99 → WGS84</span>
+                    </button>
+                    <button type="button" class="tab" id="tab-map" data-tab="map" role="tab" aria-selected="false" aria-controls="map" tabindex="-1">
+                        <span class="tab-kicker">Explore</span>
+                        <span>Map</span>
+                    </button>
+                </div>
+            </nav>
+
+            <div id="gk2wgs" class="tab-content active" role="tabpanel" aria-labelledby="tab-gk2wgs">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow">Bessel / Potsdam datum</div>
+                        <h2>Gauß-Krüger to WGS84</h2>
+                    </div>
+                    <span class="system-chip">Decimal degrees</span>
+                </div>
+                <div class="workspace-grid">
+                    <section class="panel input-panel" aria-labelledby="gkInputHeading">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="step-label">01 · Source data</span>
+                                <h3 id="gkInputHeading">Enter Gauß-Krüger points</h3>
+                            </div>
+                            <button type="button" class="button button-quiet button-compact" id="loadGkSampleButton">Load sample</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="coordinates">Coordinate rows</label>
+                            <p class="field-help">One point per line. Height is optional and defaults to 0.000.</p>
+                            <textarea id="coordinates" rows="10" spellcheck="false" placeholder="Paste PointID Easting Northing [Height]"></textarea>
+                        </div>
+                        <details class="format-guide">
+                            <summary>Input format and example</summary>
+                            <pre class="sample-block">1029 3568189.267 5657692.868 321.609</pre>
+                        </details>
+                        <div class="action-bar">
+                            <button type="button" id="convertGkButton" class="button button-primary">Convert coordinates</button>
+                            <button type="button" id="importGkButton" class="button button-secondary">Import TXT</button>
+                            <button type="button" id="clearGkButton" class="button button-quiet">Clear</button>
+                        </div>
+                        <input type="file" id="fileInput" class="hidden-file-input" accept=".txt">
+                        <div id="gkStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+                    </section>
+
+                    <section class="panel result-panel" aria-labelledby="gkResultsHeading">
+                        <div class="panel-heading result-heading">
+                            <div>
+                                <span class="step-label">02 · Output</span>
+                                <h3 id="gkResultsHeading">Converted points</h3>
+                            </div>
+                            <span class="result-count" id="gkResultCount">0 points</span>
+                        </div>
+                        <div class="result-actions">
+                            <button type="button" id="copyGkButton" class="button button-secondary button-compact" disabled>Copy</button>
+                            <button type="button" id="saveGkTxtButton" class="button button-secondary button-compact" disabled>Download TXT</button>
+                        </div>
+                        <div class="result-empty" id="gkEmptyState">
+                            <div class="empty-symbol" aria-hidden="true">+</div>
+                            <strong>Ready for coordinates</strong>
+                            <span>Converted WGS84 points will appear here.</span>
+                        </div>
+                        <div class="table-wrap" id="gkTableWrap" data-empty="true">
+                            <table id="resultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>PointID</th>
+                                        <th>Easting (GK)</th>
+                                        <th>Northing (GK)</th>
+                                        <th>Height</th>
+                                        <th>Latitude (WGS84)</th>
+                                        <th>Longitude (WGS84)</th>
+                                        <th>Google Maps</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resultsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div id="wgs2gk" class="tab-content" role="tabpanel" aria-labelledby="tab-wgs2gk" hidden>
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow">WGS84 source</div>
+                        <h2>WGS84 to target system</h2>
+                    </div>
+                    <span class="system-chip">Selectable projection</span>
+                </div>
+                <div class="workspace-grid">
+                    <section class="panel input-panel" aria-labelledby="wgsInputHeading">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="step-label">01 · Source data</span>
+                                <h3 id="wgsInputHeading">Enter WGS84 points</h3>
+                            </div>
+                            <button type="button" class="button button-quiet button-compact" id="loadWgsSampleButton">Load sample</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="wgsCoordinates">Coordinate rows</label>
+                            <p class="field-help">Use decimal latitude and longitude, one point per line.</p>
+                            <textarea id="wgsCoordinates" rows="10" spellcheck="false" placeholder="Paste PointID Latitude Longitude"></textarea>
+                        </div>
+                        <details class="format-guide">
+                            <summary>Input format and example</summary>
+                            <pre class="sample-block">1029 51.05031687 9.971396507
 1030 55.12345678 18.98765432</pre>
-                    <textarea id="wgsCoordinates" rows="10" placeholder="Example:\n1029 51.05031687 9.971396507"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="targetSystem">Target Coordinate System:</label>
-                    <select id="targetSystem" class="target-system-select">
-                        <option value="gk">Gauß-Krüger (GK)</option>
-                        <option value="sweref99">SWEREF99 18 00</option>
-                    </select>
-                </div>
-                <div class="button-group">
-                    <button type="button" id="convertWgsButton" class="reverse-convert">Convert</button>
-                    <button type="button" id="clearWgsButton" class="save-txt">Clear Input</button>
-                    <button type="button" id="importWgsButton" class="import-txt">Import TXT</button>
-                    <button type="button" id="saveWgsTxtButton" class="save-txt">Save as TXT</button>
-                    <button type="button" id="copyWgsButton" class="copy-results">Copy Results</button>
-                </div>
-                <input type="file" id="wgsFileInput" class="hidden-file-input" accept=".txt">
-                <div id="wgsStatus" class="status-message" role="status" aria-live="polite" hidden></div>
-            </div>
-            <div class="table-wrap">
-                <table id="wgsResultsTable">
-                    <thead>
-                        <tr>
-                            <th>PointID</th>
-                            <th>Latitude (WGS84)</th>
-                            <th>Longitude (WGS84)</th>
-                            <th id="eastingHeader">Easting</th>
-                            <th id="northingHeader">Northing</th>
-                        </tr>
-                    </thead>
-                    <tbody id="wgsResultsBody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                        </details>
+                        <div class="form-group target-control">
+                            <label for="targetSystem">Target coordinate system</label>
+                            <select id="targetSystem" class="target-system-select">
+                                <option value="gk">Gauß-Krüger (GK)</option>
+                                <option value="sweref99">SWEREF99 18 00</option>
+                            </select>
+                        </div>
+                        <div class="action-bar">
+                            <button type="button" id="convertWgsButton" class="button button-primary">Convert coordinates</button>
+                            <button type="button" id="importWgsButton" class="button button-secondary">Import TXT</button>
+                            <button type="button" id="clearWgsButton" class="button button-quiet">Clear</button>
+                        </div>
+                        <input type="file" id="wgsFileInput" class="hidden-file-input" accept=".txt">
+                        <div id="wgsStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+                    </section>
 
-        <div id="sweref2wgs" class="tab-content" role="tabpanel" aria-labelledby="tab-sweref2wgs">
-            <div class="input-form">
-                <div class="form-group">
-                    <div class="input-description">Enter: <b>PointID Easting Northing [Height]</b> (SWEREF99 18 00, EPSG:3011). Missing height defaults to 0.000.</div>
-                    <pre class="sample-block">1029 153905.093 6579354.449 0.000</pre>
-                    <textarea id="swerefCoordinates" rows="10" placeholder="Example:\n1029 153905.093 6579354.449 0.000"></textarea>
+                    <section class="panel result-panel" aria-labelledby="wgsResultsHeading">
+                        <div class="panel-heading result-heading">
+                            <div>
+                                <span class="step-label">02 · Output</span>
+                                <h3 id="wgsResultsHeading">Converted points</h3>
+                            </div>
+                            <span class="result-count" id="wgsResultCount">0 points</span>
+                        </div>
+                        <div class="result-actions">
+                            <button type="button" id="copyWgsButton" class="button button-secondary button-compact" disabled>Copy</button>
+                            <button type="button" id="saveWgsTxtButton" class="button button-secondary button-compact" disabled>Download TXT</button>
+                        </div>
+                        <div class="result-empty" id="wgsEmptyState">
+                            <div class="empty-symbol" aria-hidden="true">+</div>
+                            <strong>Ready for coordinates</strong>
+                            <span>Projected target-system points will appear here.</span>
+                        </div>
+                        <div class="table-wrap" id="wgsTableWrap" data-empty="true">
+                            <table id="wgsResultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>PointID</th>
+                                        <th>Latitude (WGS84)</th>
+                                        <th>Longitude (WGS84)</th>
+                                        <th id="eastingHeader">Easting</th>
+                                        <th id="northingHeader">Northing</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="wgsResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
                 </div>
-                <div class="button-group">
-                    <button type="button" id="convertSwerefButton">Convert</button>
-                    <button type="button" id="clearSwerefButton" class="save-txt">Clear Input</button>
-                    <button type="button" id="importSwerefButton" class="import-txt">Import TXT</button>
-                    <button type="button" id="saveSwerefTxtButton" class="save-txt">Save as TXT</button>
-                    <button type="button" id="copySwerefButton" class="copy-results">Copy Results</button>
-                </div>
-                <input type="file" id="swerefFileInput" class="hidden-file-input" accept=".txt">
-                <div id="swerefStatus" class="status-message" role="status" aria-live="polite" hidden></div>
             </div>
-            <div class="table-wrap">
-                <table id="swerefResultsTable">
-                    <thead>
-                        <tr>
-                            <th>PointID</th>
-                            <th>Easting (SWEREF99)</th>
-                            <th>Northing (SWEREF99)</th>
-                            <th>Height</th>
-                            <th>Latitude (WGS84)</th>
-                            <th>Longitude (WGS84)</th>
-                            <th>Google Maps</th>
-                        </tr>
-                    </thead>
-                    <tbody id="swerefResultsBody">
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map">
-            <div class="map-container">
-                <div class="map-toolbar">
-                    <button type="button" id="exportKmlButton" class="save-txt">Export as KML</button>
+            <div id="sweref2wgs" class="tab-content" role="tabpanel" aria-labelledby="tab-sweref2wgs" hidden>
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow">EPSG:3011</div>
+                        <h2>SWEREF99 18 00 to WGS84</h2>
+                    </div>
+                    <span class="system-chip">Decimal degrees</span>
                 </div>
-                <div id="mapContainer"></div>
+                <div class="workspace-grid">
+                    <section class="panel input-panel" aria-labelledby="swerefInputHeading">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="step-label">01 · Source data</span>
+                                <h3 id="swerefInputHeading">Enter SWEREF99 points</h3>
+                            </div>
+                            <button type="button" class="button button-quiet button-compact" id="loadSwerefSampleButton">Load sample</button>
+                        </div>
+                        <div class="form-group">
+                            <label for="swerefCoordinates">Coordinate rows</label>
+                            <p class="field-help">One point per line. Height is optional and defaults to 0.000.</p>
+                            <textarea id="swerefCoordinates" rows="10" spellcheck="false" placeholder="Paste PointID Easting Northing [Height]"></textarea>
+                        </div>
+                        <details class="format-guide">
+                            <summary>Input format and example</summary>
+                            <pre class="sample-block">1029 153905.093 6579354.449 0.000</pre>
+                        </details>
+                        <div class="action-bar">
+                            <button type="button" id="convertSwerefButton" class="button button-primary">Convert coordinates</button>
+                            <button type="button" id="importSwerefButton" class="button button-secondary">Import TXT</button>
+                            <button type="button" id="clearSwerefButton" class="button button-quiet">Clear</button>
+                        </div>
+                        <input type="file" id="swerefFileInput" class="hidden-file-input" accept=".txt">
+                        <div id="swerefStatus" class="status-message" role="status" aria-live="polite" hidden></div>
+                    </section>
+
+                    <section class="panel result-panel" aria-labelledby="swerefResultsHeading">
+                        <div class="panel-heading result-heading">
+                            <div>
+                                <span class="step-label">02 · Output</span>
+                                <h3 id="swerefResultsHeading">Converted points</h3>
+                            </div>
+                            <span class="result-count" id="swerefResultCount">0 points</span>
+                        </div>
+                        <div class="result-actions">
+                            <button type="button" id="copySwerefButton" class="button button-secondary button-compact" disabled>Copy</button>
+                            <button type="button" id="saveSwerefTxtButton" class="button button-secondary button-compact" disabled>Download TXT</button>
+                        </div>
+                        <div class="result-empty" id="swerefEmptyState">
+                            <div class="empty-symbol" aria-hidden="true">+</div>
+                            <strong>Ready for coordinates</strong>
+                            <span>Converted WGS84 points will appear here.</span>
+                        </div>
+                        <div class="table-wrap" id="swerefTableWrap" data-empty="true">
+                            <table id="swerefResultsTable">
+                                <thead>
+                                    <tr>
+                                        <th>PointID</th>
+                                        <th>Easting (SWEREF99)</th>
+                                        <th>Northing (SWEREF99)</th>
+                                        <th>Height</th>
+                                        <th>Latitude (WGS84)</th>
+                                        <th>Longitude (WGS84)</th>
+                                        <th>Google Maps</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="swerefResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
             </div>
-        </div>
+
+            <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map" hidden>
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow">Spatial review</div>
+                        <h2>Converted point map</h2>
+                    </div>
+                    <span class="system-chip">OpenStreetMap</span>
+                </div>
+                <section class="panel map-panel" aria-label="Coordinate map">
+                    <div class="map-toolbar">
+                        <div>
+                            <span class="step-label">Map workspace</span>
+                            <p>Review all successfully converted points in one spatial context.</p>
+                        </div>
+                        <button type="button" id="exportKmlButton" class="button button-secondary">Export KML</button>
+                    </div>
+                    <div id="mapContainer"></div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="product-footer">
+            <span>Local processing · Coordinate data stays on this device</span>
+            <span>GeoMonitoring Interface Standard · 2026</span>
+        </footer>
     </div>
 
     <script>
-        function pot2wgs(lng, lat) {
-            var dx = 598.1, dy = 73.7, dz = 418.2;
-            var rx = 0.202 / 3600 * Math.PI / 180;
-            var ry = 0.045 / 3600 * Math.PI / 180;
-            var rz = -2.455 / 3600 * Math.PI / 180;
-            var m = 6.7 / 1e6;
-            var a = 6377397.15508;
-            var f = 3.34277321e-3;
-            var e2 = 2*f - f*f;
-            var latRad = lat * Math.PI / 180;
-            var lngRad = lng * Math.PI / 180;
-            var N = a / Math.sqrt(1 - e2 * Math.sin(latRad) * Math.sin(latRad));
-            var X = N * Math.cos(latRad) * Math.cos(lngRad);
-            var Y = N * Math.cos(latRad) * Math.sin(lngRad);
-            var Z = N * (1 - e2) * Math.sin(latRad);
-            var X2 = X + dx + m*X - rz*Y + ry*Z;
-            var Y2 = Y + dy + rz*X + m*Y - rx*Z;
-            var Z2 = Z + dz - ry*X + rx*Y + m*Z;
-            var a2 = 6378137.0;
-            var f2 = 1 / 298.257223563;
-            var e22 = 2*f2 - f2*f2;
-            var p = Math.sqrt(X2*X2 + Y2*Y2);
-            var lat2 = Math.atan2(Z2, p * (1 - e22));
-            var lat2old;
-            do {
-                lat2old = lat2;
-                var N2 = a2 / Math.sqrt(1 - e22 * Math.sin(lat2old) * Math.sin(lat2old));
-                lat2 = Math.atan2(Z2 + e22*N2*Math.sin(lat2old), p);
-            } while (Math.abs(lat2 - lat2old) > 1e-11);
-            var lng2 = Math.atan2(Y2, X2);
-            return { lat: lat2 * 180/Math.PI, lng: lng2 * 180/Math.PI };
+function pot2wgs(lng, lat) {
+    var dx = 598.1, dy = 73.7, dz = 418.2;
+    var rx = 0.202 / 3600 * Math.PI / 180;
+    var ry = 0.045 / 3600 * Math.PI / 180;
+    var rz = -2.455 / 3600 * Math.PI / 180;
+    var m = 6.7 / 1e6;
+    var a = 6377397.15508;
+    var f = 3.34277321e-3;
+    var e2 = 2*f - f*f;
+    var latRad = lat * Math.PI / 180;
+    var lngRad = lng * Math.PI / 180;
+    var N = a / Math.sqrt(1 - e2 * Math.sin(latRad) * Math.sin(latRad));
+    var X = N * Math.cos(latRad) * Math.cos(lngRad);
+    var Y = N * Math.cos(latRad) * Math.sin(lngRad);
+    var Z = N * (1 - e2) * Math.sin(latRad);
+    var X2 = X + dx + m*X - rz*Y + ry*Z;
+    var Y2 = Y + dy + rz*X + m*Y - rx*Z;
+    var Z2 = Z + dz - ry*X + rx*Y + m*Z;
+    var a2 = 6378137.0;
+    var f2 = 1 / 298.257223563;
+    var e22 = 2*f2 - f2*f2;
+    var p = Math.sqrt(X2*X2 + Y2*Y2);
+    var lat2 = Math.atan2(Z2, p * (1 - e22));
+    var lat2old;
+    do {
+        lat2old = lat2;
+        var N2 = a2 / Math.sqrt(1 - e22 * Math.sin(lat2old) * Math.sin(lat2old));
+        lat2 = Math.atan2(Z2 + e22*N2*Math.sin(lat2old), p);
+    } while (Math.abs(lat2 - lat2old) > 1e-11);
+    var lng2 = Math.atan2(Y2, X2);
+    return { lat: lat2 * 180/Math.PI, lng: lng2 * 180/Math.PI };
+}
+
+function gk2geo(rw, hw) {
+    var ll = {};
+    if (rw == "" || hw == "" || isNaN(rw) || isNaN(hw)) return ll;
+    rw = parseFloat(rw);
+    hw = parseFloat(hw);
+    var a = 6377397.15508;
+    var f = 3.34277321e-3;
+    var pi = Math.PI;
+    var c = a/(1-f);
+    var ex2 = (2*f-f*f)/((1-f)*(1-f));
+    var ex4 = ex2*ex2;
+    var ex6 = ex4*ex2;
+    var ex8 = ex4*ex4;
+    var e0 = c*(pi/180)*(1 - 3*ex2/4 + 45*ex4/64 - 175*ex6/256 + 11025*ex8/16384);
+    var f2 =   (180/pi)*(    3*ex2/8 - 3*ex4/16  + 213*ex6/2048 -  255*ex8/4096);
+    var f4 =              (180/pi)*(  21*ex4/256 -  21*ex6/256  +  533*ex8/8192);
+    var f6 =                           (180/pi)*(  151*ex6/6144 -  453*ex8/12288);
+    var sigma = hw/e0;
+    var sigmr = sigma*pi/180;
+    var bf = sigma + f2*Math.sin(2*sigmr) + f4*Math.sin(4*sigmr) + f6*Math.sin(6*sigmr);
+    var br = bf * pi/180;
+    var tan1 = Math.tan(br);
+    var tan2 = tan1*tan1;
+    var tan4 = tan2*tan2;
+    var cos1 = Math.cos(br);
+    var cos2 = cos1*cos1;
+    var etasq = ex2*cos2;
+    var nd = c/Math.sqrt(1 + etasq);
+    var nd2 = nd*nd;
+    var nd4 = nd2*nd2;
+    var nd6 = nd4*nd2;
+    var nd3 = nd2*nd;
+    var nd5 = nd4*nd;
+    var kz = parseInt(rw/1e6);
+    var lh = kz*3;
+    var dy = rw-(kz*1e6+500000);
+    var dy2 = dy*dy;
+    var dy4 = dy2*dy2;
+    var dy3 = dy2*dy;
+    var dy5 = dy4*dy;
+    var dy6 = dy3*dy3;
+    var b2 = - tan1*(1+etasq)/(2*nd2);
+    var b4 =   tan1*(5+3*tan2+6*etasq*(1-tan2))/(24*nd4);
+    var b6 = - tan1*(61+90*tan2+45*tan4)/(720*nd6);
+    var l1 =   1/(nd*cos1);
+    var l3 = - (1+2*tan2+etasq)/(6*nd3*cos1);
+    var l5 =   (5+28*tan2+24*tan4)/(120*nd5*cos1);
+    var lat = bf + (180/pi) * (b2*dy2 + b4*dy4 + b6*dy6);
+    var lng = lh + (180/pi) * (l1*dy  + l3*dy3 + l5*dy5);
+    var llw = pot2wgs(lng, lat);
+    return llw;
+}
+
+function Dezimal2GK(lp, bp) {
+    var gk = {};
+    if (lp === "" || bp === "" || isNaN(lp) || isNaN(bp)) return gk;
+    lp = parseFloat(lp);
+    bp = parseFloat(bp);
+    if (bp < 46 || bp > 56 || lp < 5 || lp > 16) {
+        return gk;
+    }
+    var a = 6377397.15508;
+    var f = 3.34277321e-3;
+    var pi = Math.PI;
+    var c = a / (1 - f);
+    var ex2 = (2 * f - f * f) / ((1 - f) * (1 - f));
+    var ex4 = ex2 * ex2;
+    var ex6 = ex4 * ex2;
+    var ex8 = ex4 * ex4;
+    var e0 = c * (pi / 180) * (1 - 3 * ex2 / 4 + 45 * ex4 / 64 - 175 * ex6 / 256 + 11025 * ex8 / 16384);
+    var e2 = c * (-3 * ex2 / 8 + 15 * ex4 / 32 - 525 * ex6 / 1024 + 2205 * ex8 / 4096);
+    var e4 = c * (15 * ex4 / 256 - 105 * ex6 / 1024 + 2205 * ex8 / 16384);
+    var e6 = c * (-35 * ex6 / 3072 + 315 * ex8 / 12288);
+    var br = bp * pi / 180;
+    var tan1 = Math.tan(br);
+    var tan2 = tan1 * tan1;
+    var tan4 = tan2 * tan2;
+    var cos1 = Math.cos(br);
+    var cos2 = cos1 * cos1;
+    var cos4 = cos2 * cos2;
+    var cos3 = cos2 * cos1;
+    var cos5 = cos4 * cos1;
+    var etasq = ex2 * cos2;
+    var nd = c / Math.sqrt(1 + etasq);
+    var g = e0 * bp + e2 * Math.sin(2 * br) + e4 * Math.sin(4 * br) + e6 * Math.sin(6 * br);
+    var kz = parseInt((lp + 1.5) / 3);
+    var lh = kz * 3;
+    var dl = (lp - lh) * pi / 180;
+    var dl2 = dl * dl;
+    var dl4 = dl2 * dl2;
+    var dl3 = dl2 * dl;
+    var dl5 = dl4 * dl;
+    var hw = g + nd * cos2 * tan1 * dl2 / 2 + nd * cos4 * tan1 * (5 - tan2 + 9 * etasq) * dl4 / 24;
+    var rw = nd * cos1 * dl + nd * cos3 * (1 - tan2 + etasq) * dl3 / 6 + nd * cos5 * (5 - 18 * tan2 + tan4) * dl5 / 120 + kz * 1e6 + 500000;
+    gk["h"] = hw.toFixed(3);
+    gk["r"] = rw.toFixed(3);
+    gk["z"] = rw.toString().charAt(0);
+    return gk;
+}
+
+function wgs2pot(lp, bp) {
+    var ll = [];
+    if (lp === "" || bp === "" || isNaN(lp) || isNaN(bp)) return ll;
+    lp = parseFloat(lp);
+    bp = parseFloat(bp);
+
+    var a = 6378137.000 - 739.845;
+    var fq = 3.35281066e-3 - 1.003748e-05;
+    var f = 3.35281066e-3;
+
+    var dx = -587;
+    var dy = -16;
+    var dz = -393;
+
+    var e2q = (2 * fq - fq * fq);
+    var e2 = (2 * f - f * f);
+    var pi = Math.PI;
+    var b1 = bp * (pi / 180);
+    var l1 = lp * (pi / 180);
+    var nd = a / Math.sqrt(1 - e2 * Math.sin(b1) * Math.sin(b1));
+
+    var x = nd * Math.cos(b1) * Math.cos(l1);
+    var y = nd * Math.cos(b1) * Math.sin(l1);
+    var z = (1 - e2) * nd * Math.sin(b1);
+
+    var xp = x + dx;
+    var yp = y + dy;
+    var zp = z + dz;
+
+    var rb = Math.sqrt(xp * xp + yp * yp);
+    var b2 = (180 / pi) * Math.atan((zp / rb) / (1 - e2q));
+    var l2 = 0;
+    if (xp > 0)
+        l2 = (180 / pi) * Math.atan(yp / xp);
+    if (xp < 0 && yp > 0)
+        l2 = (180 / pi) * Math.atan(yp / xp) + 180;
+    if (xp < 0 && yp < 0)
+        l2 = (180 / pi) * Math.atan(yp / xp) - 180;
+
+    ll["lng"] = parseFloat(l2.toFixed(8));
+    ll["lat"] = parseFloat(b2.toFixed(8));
+    return ll;
+}
+
+// Mathematical helper functions for older browser compatibility
+Math.cosh = Math.cosh || function(x) {
+    return (Math.exp(x) + Math.exp(-x)) / 2;
+};
+
+Math.sinh = Math.sinh || function(x) {
+    return (Math.exp(x) - Math.exp(-x)) / 2;
+};
+
+Math.tanh = Math.tanh || function(x) {
+    var exp2x = Math.exp(2 * x);
+    return (exp2x - 1) / (exp2x + 1);
+};
+
+Math.asinh = Math.asinh || function(x) {
+    return Math.log(x + Math.sqrt(x * x + 1));
+};
+
+Math.atanh = Math.atanh || function(x) {
+    return 0.5 * Math.log((1 + x) / (1 - x));
+};
+
+function sweref99ToWGS84(easting, northing) {
+    // SWEREF99 18 00 parameters (EPSG:3011)
+    var a = 6378137.0;              // Semi-major axis (GRS80)
+    var f = 1 / 298.257222101;      // Flattening (GRS80)
+    var lat0 = 0.0;                 // Latitude of natural origin (degrees)
+    var lon0 = 18.0;                // Longitude of natural origin (degrees)
+    var k0 = 1.0;                   // Scale factor at natural origin
+    var x0 = 150000.0;              // False easting (meters)
+    var y0 = 0.0;                   // False northing (meters)
+
+    // Convert to radians
+    var DEG_TO_RAD = Math.PI / 180.0;
+    var RAD_TO_DEG = 180.0 / Math.PI;
+
+    lat0 *= DEG_TO_RAD;
+    lon0 *= DEG_TO_RAD;
+
+    // Derived constants
+    var b = a * (1 - f);           // Semi-minor axis
+    var e2 = 2 * f - f * f;        // First eccentricity squared
+    var e = Math.sqrt(e2);         // First eccentricity
+    var e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+
+    // Remove false easting and northing
+    var x = easting - x0;
+    var y = northing - y0;
+
+    // Calculate meridional arc
+    var M0 = 0; // M0 = 0 since lat0 = 0
+    var M = M0 + y / k0;
+
+    // Calculate footprint latitude
+    var mu = M / (a * (1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256));
+
+    var e1_2 = e1 * e1;
+    var e1_3 = e1_2 * e1;
+    var e1_4 = e1_3 * e1;
+
+    var fp = mu + (3*e1/2 - 27*e1_3/32) * Math.sin(2*mu)
+               + (21*e1_2/16 - 55*e1_4/32) * Math.sin(4*mu)
+               + (151*e1_3/96) * Math.sin(6*mu)
+               + (1097*e1_4/512) * Math.sin(8*mu);
+
+    // Calculate radius of curvature
+    var sin_fp = Math.sin(fp);
+    var cos_fp = Math.cos(fp);
+    var tan_fp = Math.tan(fp);
+    var tan2_fp = tan_fp * tan_fp;
+    var tan4_fp = tan2_fp * tan2_fp;
+
+    var n1 = a / Math.sqrt(1 - e2 * sin_fp * sin_fp);
+    var r1 = a * (1 - e2) / Math.pow(1 - e2 * sin_fp * sin_fp, 1.5);
+    var d = x / (n1 * k0);
+    var d2 = d * d;
+    var d3 = d2 * d;
+    var d4 = d3 * d;
+    var d5 = d4 * d;
+    var d6 = d5 * d;
+
+    var c1 = e2 * cos_fp * cos_fp / (1 - e2);
+    var c1_2 = c1 * c1;
+
+    // Calculate latitude
+    var lat = fp - (n1 * tan_fp / r1) * (d2/2 - (5 + 3*tan2_fp + 10*c1 - 4*c1_2 - 9*e2*cos_fp*cos_fp) * d4/24
+              + (61 + 90*tan2_fp + 298*c1 + 45*tan4_fp - 252*e2*cos_fp*cos_fp - 3*c1_2) * d6/720);
+
+    // Calculate longitude
+    var lon = lon0 + (d - (1 + 2*tan2_fp + c1) * d3/6
+                   + (5 - 2*c1 + 28*tan2_fp - 3*c1_2 + 8*e2*cos_fp*cos_fp + 24*tan4_fp) * d5/120) / cos_fp;
+
+    // Convert to degrees
+    return {
+        lat: lat * RAD_TO_DEG,
+        lng: lon * RAD_TO_DEG
+    };
+}
+
+function wgs84ToSweref99(lat, lng) {
+    // SWEREF99 18 00 parameters (EPSG:3011)
+    var a = 6378137.0;              // Semi-major axis (GRS80)
+    var f = 1 / 298.257222101;      // Flattening (GRS80)
+    var lat0 = 0.0;                 // Latitude of natural origin (degrees)
+    var lon0 = 18.0;                // Longitude of natural origin (degrees)
+    var k0 = 1.0;                   // Scale factor at natural origin
+    var x0 = 150000.0;              // False easting (meters)
+    var y0 = 0.0;                   // False northing (meters)
+
+    // Convert to radians
+    var DEG_TO_RAD = Math.PI / 180.0;
+
+    lat *= DEG_TO_RAD;
+    lng *= DEG_TO_RAD;
+    lat0 *= DEG_TO_RAD;
+    lon0 *= DEG_TO_RAD;
+
+    // Derived constants
+    var b = a * (1 - f);           // Semi-minor axis
+    var e2 = 2 * f - f * f;        // First eccentricity squared
+    var e = Math.sqrt(e2);         // First eccentricity
+
+    // Calculate radius of curvature in the prime vertical
+    var sin_lat = Math.sin(lat);
+    var cos_lat = Math.cos(lat);
+    var tan_lat = Math.tan(lat);
+    var tan2_lat = tan_lat * tan_lat;
+    var tan4_lat = tan2_lat * tan2_lat;
+
+    var n = a / Math.sqrt(1 - e2 * sin_lat * sin_lat);
+    var c = e2 * cos_lat * cos_lat / (1 - e2);
+    var c2 = c * c;
+    var a2 = (lng - lon0) * cos_lat;
+    var a2_2 = a2 * a2;
+    var a2_3 = a2_2 * a2;
+    var a2_4 = a2_3 * a2;
+    var a2_5 = a2_4 * a2;
+    var a2_6 = a2_5 * a2;
+
+    // Calculate meridional arc
+    var M0 = 0; // M0 = 0 since lat0 = 0
+    var M = a * ((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256) * lat
+               - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024) * Math.sin(2*lat)
+               + (15*e2*e2/256 + 45*e2*e2*e2/1024) * Math.sin(4*lat)
+               - (35*e2*e2*e2/3072) * Math.sin(6*lat));
+
+    // Calculate coordinates
+    var x = k0 * n * (a2 + (1 - tan2_lat + c) * a2_3 / 6
+                   + (5 - 18*tan2_lat + tan4_lat + 72*c - 58*e2*cos_lat*cos_lat) * a2_5 / 120);
+
+    var y = k0 * (M - M0 + n * tan_lat * (a2_2/2 + (5 - tan2_lat + 9*c + 4*c2) * a2_4/24
+                  + (61 - 58*tan2_lat + tan4_lat + 600*c - 330*e2*cos_lat*cos_lat) * a2_6/720));
+
+    return {
+        x: x + x0,
+        y: y + y0
+    };
+}
+    </script>
+    <script>
+function appendTextCell(row, value) {
+    // Use textContent so imported point IDs cannot inject HTML into result tables.
+    const cell = document.createElement('td');
+    cell.textContent = value;
+    row.appendChild(cell);
+    return cell;
+}
+
+function appendMapLinkCell(row, lat, lng) {
+    const cell = document.createElement('td');
+    const link = document.createElement('a');
+    link.href = getGoogleMapsLink(lat, lng);
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'map-link';
+    link.textContent = 'View on Map';
+    cell.appendChild(link);
+    row.appendChild(cell);
+    return cell;
+}
+
+function appendDownloadLink(fileName, content, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+}
+
+function escapeXml(value) {
+    // KML is XML, so point IDs need XML escaping before export.
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function getDateStamp() {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    return `${dd}${mm}${yyyy}`;
+}
+
+function isTxtFile(file) {
+    // Some mobile browsers leave file.type empty for local .txt files.
+    return file.name.toLowerCase().endsWith('.txt') || file.type === 'text/plain';
+}
+
+function isMapLibraryReady(showAlert) {
+    const ready = typeof window.ol !== 'undefined';
+    if (!ready && showAlert) {
+        alert('Map visualization is unavailable because the map library did not load. Check your internet connection and reload the page.');
+    }
+    return ready;
+}
+
+const STRICT_DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/;
+
+function parseStrictDecimal(value) {
+    const text = String(value).trim();
+    if (!STRICT_DECIMAL_PATTERN.test(text)) return null;
+    const number = Number(text);
+    return isFinite(number) ? number : null;
+}
+
+const IMPORT_MODE_CONFIG = {
+    gk: {
+        requiresHeight: true,
+        firstName: 'Easting',
+        secondName: 'Northing',
+        isPlausiblePair: (first, second) =>
+            first >= 2000000 && first <= 6000000 &&
+            second >= 4500000 && second <= 6500000
+    },
+    sweref: {
+        requiresHeight: true,
+        firstName: 'Easting',
+        secondName: 'Northing',
+        isPlausiblePair: (first, second) =>
+            first >= 0 && first <= 1500000 &&
+            second >= 5000000 && second <= 8000000
+    },
+    wgs: {
+        requiresHeight: false,
+        firstName: 'Latitude',
+        secondName: 'Longitude',
+        isPlausiblePair: (first, second) =>
+            first >= 0 && first <= 90 &&
+            second >= 0 && second <= 180
+    }
+};
+
+function cleanCoordinateLine(line) {
+    const trimmed = String(line)
+        .replace(/^\uFEFF/, '')
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ')
+        .trim();
+    if (!trimmed) return { content: '', kind: 'blank' };
+    if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
+        return { content: '', kind: 'comment' };
+    }
+    const withoutInlineComment = trimmed
+        .replace(/\s+#.*$/, '')
+        .replace(/\s+\/\/.*$/, '')
+        .trim();
+    return withoutInlineComment
+        ? { content: withoutInlineComment, kind: 'data' }
+        : { content: '', kind: 'comment' };
+}
+
+function parseCoordinateLine(line, mode, lineNumber) {
+    const config = IMPORT_MODE_CONFIG[mode];
+    const cleaned = cleanCoordinateLine(line);
+    if (cleaned.kind !== 'data') {
+        return { skip: true, skipKind: cleaned.kind };
+    }
+    if (!config) {
+        return { error: `Line ${lineNumber}: Unsupported coordinate import mode.` };
+    }
+
+    const tokens = cleaned.content.split(/[\s;|]+/).filter(Boolean);
+    let coordinateIndex = -1;
+    for (let index = 1; index < tokens.length - 1; index++) {
+        const first = parseStrictDecimal(tokens[index]);
+        const second = parseStrictDecimal(tokens[index + 1]);
+        if (first !== null && second !== null && config.isPlausiblePair(first, second)) {
+            coordinateIndex = index;
+            break;
         }
+    }
 
-        function gk2geo(rw, hw) {
-            var ll = {};
-            if (rw == "" || hw == "" || isNaN(rw) || isNaN(hw)) return ll;
-            rw = parseFloat(rw);
-            hw = parseFloat(hw);
-            var a = 6377397.15508;
-            var f = 3.34277321e-3;
-            var pi = Math.PI;
-            var c = a/(1-f);
-            var ex2 = (2*f-f*f)/((1-f)*(1-f));
-            var ex4 = ex2*ex2;
-            var ex6 = ex4*ex2;
-            var ex8 = ex4*ex4;
-            var e0 = c*(pi/180)*(1 - 3*ex2/4 + 45*ex4/64 - 175*ex6/256 + 11025*ex8/16384);
-            var f2 =   (180/pi)*(    3*ex2/8 - 3*ex4/16  + 213*ex6/2048 -  255*ex8/4096);
-            var f4 =              (180/pi)*(  21*ex4/256 -  21*ex6/256  +  533*ex8/8192);
-            var f6 =                           (180/pi)*(  151*ex6/6144 -  453*ex8/12288);
-            var sigma = hw/e0;
-            var sigmr = sigma*pi/180;
-            var bf = sigma + f2*Math.sin(2*sigmr) + f4*Math.sin(4*sigmr) + f6*Math.sin(6*sigmr);
-            var br = bf * pi/180;
-            var tan1 = Math.tan(br);
-            var tan2 = tan1*tan1;
-            var tan4 = tan2*tan2;
-            var cos1 = Math.cos(br);
-            var cos2 = cos1*cos1;
-            var etasq = ex2*cos2;
-            var nd = c/Math.sqrt(1 + etasq);
-            var nd2 = nd*nd;
-            var nd4 = nd2*nd2;
-            var nd6 = nd4*nd2;
-            var nd3 = nd2*nd;
-            var nd5 = nd4*nd;
-            var kz = parseInt(rw/1e6);
-            var lh = kz*3;
-            var dy = rw-(kz*1e6+500000);
-            var dy2 = dy*dy;
-            var dy4 = dy2*dy2;
-            var dy3 = dy2*dy;
-            var dy5 = dy4*dy;
-            var dy6 = dy3*dy3;
-            var b2 = - tan1*(1+etasq)/(2*nd2);
-            var b4 =   tan1*(5+3*tan2+6*etasq*(1-tan2))/(24*nd4);
-            var b6 = - tan1*(61+90*tan2+45*tan4)/(720*nd6);
-            var l1 =   1/(nd*cos1);
-            var l3 = - (1+2*tan2+etasq)/(6*nd3*cos1);
-            var l5 =   (5+28*tan2+24*tan4)/(120*nd5*cos1);
-            var lat = bf + (180/pi) * (b2*dy2 + b4*dy4 + b6*dy6);
-            var lng = lh + (180/pi) * (l1*dy  + l3*dy3 + l5*dy5);
-            var llw = pot2wgs(lng, lat);
-            return llw;
+    // Preserve the legacy standard layout even when coordinates are
+    // outside the practical-area ranges used for flexible recognition.
+    if (
+        coordinateIndex === -1 &&
+        tokens.length >= 3 &&
+        parseStrictDecimal(tokens[1]) !== null &&
+        parseStrictDecimal(tokens[2]) !== null
+    ) {
+        coordinateIndex = 1;
+    }
+
+    if (coordinateIndex === -1) {
+        if (tokens.length >= 3) {
+            const numericError = getStrictDecimalError(lineNumber, [
+                { name: config.firstName, value: tokens[1] },
+                { name: config.secondName, value: tokens[2] }
+            ]);
+            if (numericError) return { error: numericError };
         }
-
-        function Dezimal2GK(lp, bp) {
-            var gk = {};
-            if (lp === "" || bp === "" || isNaN(lp) || isNaN(bp)) return gk;
-            lp = parseFloat(lp);
-            bp = parseFloat(bp);
-            if (bp < 46 || bp > 56 || lp < 5 || lp > 16) {
-                return gk;
-            }
-            var a = 6377397.15508;
-            var f = 3.34277321e-3;
-            var pi = Math.PI;
-            var c = a / (1 - f);
-            var ex2 = (2 * f - f * f) / ((1 - f) * (1 - f));
-            var ex4 = ex2 * ex2;
-            var ex6 = ex4 * ex2;
-            var ex8 = ex4 * ex4;
-            var e0 = c * (pi / 180) * (1 - 3 * ex2 / 4 + 45 * ex4 / 64 - 175 * ex6 / 256 + 11025 * ex8 / 16384);
-            var e2 = c * (-3 * ex2 / 8 + 15 * ex4 / 32 - 525 * ex6 / 1024 + 2205 * ex8 / 4096);
-            var e4 = c * (15 * ex4 / 256 - 105 * ex6 / 1024 + 2205 * ex8 / 16384);
-            var e6 = c * (-35 * ex6 / 3072 + 315 * ex8 / 12288);
-            var br = bp * pi / 180;
-            var tan1 = Math.tan(br);
-            var tan2 = tan1 * tan1;
-            var tan4 = tan2 * tan2;
-            var cos1 = Math.cos(br);
-            var cos2 = cos1 * cos1;
-            var cos4 = cos2 * cos2;
-            var cos3 = cos2 * cos1;
-            var cos5 = cos4 * cos1;
-            var etasq = ex2 * cos2;
-            var nd = c / Math.sqrt(1 + etasq);
-            var g = e0 * bp + e2 * Math.sin(2 * br) + e4 * Math.sin(4 * br) + e6 * Math.sin(6 * br);
-            var kz = parseInt((lp + 1.5) / 3);
-            var lh = kz * 3;
-            var dl = (lp - lh) * pi / 180;
-            var dl2 = dl * dl;
-            var dl4 = dl2 * dl2;
-            var dl3 = dl2 * dl;
-            var dl5 = dl4 * dl;
-            var hw = g + nd * cos2 * tan1 * dl2 / 2 + nd * cos4 * tan1 * (5 - tan2 + 9 * etasq) * dl4 / 24;
-            var rw = nd * cos1 * dl + nd * cos3 * (1 - tan2 + etasq) * dl3 / 6 + nd * cos5 * (5 - 18 * tan2 + tan4) * dl5 / 120 + kz * 1e6 + 500000;
-            gk["h"] = hw.toFixed(3);
-            gk["r"] = rw.toFixed(3);
-            gk["z"] = rw.toString().charAt(0);
-            return gk;
-        }
-
-        function wgs2pot(lp, bp) {
-            var ll = [];
-            if (lp === "" || bp === "" || isNaN(lp) || isNaN(bp)) return ll;
-            lp = parseFloat(lp);
-            bp = parseFloat(bp);
-
-            var a = 6378137.000 - 739.845;
-            var fq = 3.35281066e-3 - 1.003748e-05;
-            var f = 3.35281066e-3;
-
-            var dx = -587;
-            var dy = -16;
-            var dz = -393;
-
-            var e2q = (2 * fq - fq * fq);
-            var e2 = (2 * f - f * f);
-            var pi = Math.PI;
-            var b1 = bp * (pi / 180);
-            var l1 = lp * (pi / 180);
-            var nd = a / Math.sqrt(1 - e2 * Math.sin(b1) * Math.sin(b1));
-
-            var x = nd * Math.cos(b1) * Math.cos(l1);
-            var y = nd * Math.cos(b1) * Math.sin(l1);
-            var z = (1 - e2) * nd * Math.sin(b1);
-
-            var xp = x + dx;
-            var yp = y + dy;
-            var zp = z + dz;
-
-            var rb = Math.sqrt(xp * xp + yp * yp);
-            var b2 = (180 / pi) * Math.atan((zp / rb) / (1 - e2q));
-            var l2 = 0;
-            if (xp > 0)
-                l2 = (180 / pi) * Math.atan(yp / xp);
-            if (xp < 0 && yp > 0)
-                l2 = (180 / pi) * Math.atan(yp / xp) + 180;
-            if (xp < 0 && yp < 0)
-                l2 = (180 / pi) * Math.atan(yp / xp) - 180;
-
-            ll["lng"] = parseFloat(l2.toFixed(8));
-            ll["lat"] = parseFloat(b2.toFixed(8));
-            return ll;
-        }
-
-        // Mathematical helper functions for older browser compatibility
-        Math.cosh = Math.cosh || function(x) {
-            return (Math.exp(x) + Math.exp(-x)) / 2;
+        return {
+            error: `Line ${lineNumber}: Could not identify ${config.firstName} and ${config.secondName}.`
         };
-        
-        Math.sinh = Math.sinh || function(x) {
-            return (Math.exp(x) - Math.exp(-x)) / 2;
-        };
-        
-        Math.tanh = Math.tanh || function(x) {
-            var exp2x = Math.exp(2 * x);
-            return (exp2x - 1) / (exp2x + 1);
-        };
-        
-        Math.asinh = Math.asinh || function(x) {
-            return Math.log(x + Math.sqrt(x * x + 1));
-        };
-        
-        Math.atanh = Math.atanh || function(x) {
-            return 0.5 * Math.log((1 + x) / (1 - x));
-        };
+    }
 
-        function appendTextCell(row, value) {
-            // Use textContent so imported point IDs cannot inject HTML into result tables.
-            const cell = document.createElement('td');
-            cell.textContent = value;
-            row.appendChild(cell);
-            return cell;
+    const pointID = tokens.slice(0, coordinateIndex).join(' ').trim();
+    if (!pointID) {
+        return { error: `Line ${lineNumber}: PointID is missing.` };
+    }
+
+    const firstText = tokens[coordinateIndex];
+    const secondText = tokens[coordinateIndex + 1];
+    let consumedTokens = coordinateIndex + 2;
+    let heightText = null;
+    let defaultedHeight = false;
+    if (config.requiresHeight) {
+        if (
+            tokens.length > consumedTokens &&
+            parseStrictDecimal(tokens[consumedTokens]) !== null
+        ) {
+            heightText = tokens[consumedTokens];
+            consumedTokens++;
+        } else {
+            heightText = '0.000';
+            defaultedHeight = true;
+        }
+    }
+
+    return {
+        pointID,
+        firstText,
+        secondText,
+        firstValue: parseStrictDecimal(firstText),
+        secondValue: parseStrictDecimal(secondText),
+        heightText,
+        heightValue: heightText === null ? null : parseStrictDecimal(heightText),
+        defaultedHeight,
+        multiPartPointID: coordinateIndex > 1,
+        extraFieldCount: Math.max(0, tokens.length - consumedTokens)
+    };
+}
+
+function normalizeImportedCoordinateText(text, mode) {
+    const config = IMPORT_MODE_CONFIG[mode];
+    const normalizedLines = [];
+    const summary = {
+        importedCount: 0,
+        blankCount: 0,
+        commentCount: 0,
+        invalidCount: 0,
+        defaultedHeightCount: 0,
+        multiPartPointIdCount: 0,
+        extraFieldCount: 0
+    };
+
+    String(text).split(/\r?\n/).forEach((line, index) => {
+        const parsed = parseCoordinateLine(line, mode, index + 1);
+        if (parsed.skip) {
+            if (parsed.skipKind === 'comment') summary.commentCount++;
+            else summary.blankCount++;
+            return;
+        }
+        if (parsed.error) {
+            summary.invalidCount++;
+            return;
         }
 
-        function appendMapLinkCell(row, lat, lng) {
-            const cell = document.createElement('td');
-            const link = document.createElement('a');
-            link.href = getGoogleMapsLink(lat, lng);
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.className = 'map-link';
-            link.textContent = 'View on Map';
-            cell.appendChild(link);
-            row.appendChild(cell);
-            return cell;
+        const fields = [parsed.pointID, parsed.firstText, parsed.secondText];
+        if (config.requiresHeight) fields.push(parsed.heightText);
+        normalizedLines.push(fields.join('\t'));
+        summary.importedCount++;
+        if (parsed.defaultedHeight) summary.defaultedHeightCount++;
+        if (parsed.multiPartPointID) summary.multiPartPointIdCount++;
+        summary.extraFieldCount += parsed.extraFieldCount;
+    });
+
+    return { text: normalizedLines.join('\n'), summary };
+}
+
+function showImportStatus(statusId, summary) {
+    const removedCount = summary.blankCount + summary.commentCount + summary.invalidCount;
+    const headline =
+        `Imported: ${summary.importedCount} | Removed non-data lines: ${removedCount} | ` +
+        `Default heights: ${summary.defaultedHeightCount}`;
+    const details = [];
+    if (summary.defaultedHeightCount) {
+        details.push(`${summary.defaultedHeightCount} row(s) had no height; 0.000 was added.`);
+    }
+    if (summary.multiPartPointIdCount) {
+        details.push(`${summary.multiPartPointIdCount} multi-part point ID(s) were preserved.`);
+    }
+    if (summary.extraFieldCount) {
+        details.push(`${summary.extraFieldCount} trailing field(s) were removed.`);
+    }
+    if (summary.invalidCount) {
+        details.push(`${summary.invalidCount} unrecognized line(s) were removed.`);
+    }
+    if (!summary.importedCount) {
+        setStatus(statusId, 'error', [headline, 'No coordinate records were recognized in the file.']);
+        return;
+    }
+    const type =
+        summary.defaultedHeightCount || summary.extraFieldCount || summary.invalidCount
+            ? 'warning'
+            : 'success';
+    setStatus(statusId, type, [headline, ...details]);
+}
+
+function getStrictDecimalError(lineNumber, fields) {
+    const invalidFields = fields
+        .filter(field => parseStrictDecimal(field.value) === null)
+        .map(field => field.name);
+    if (!invalidFields.length) return '';
+    return `Line ${lineNumber}: Invalid numeric field(s): ${invalidFields.join(', ')}. Use digits and one optional decimal point only.`;
+}
+
+function clearStatus(statusId) {
+    const status = document.getElementById(statusId);
+    if (!status) return;
+    status.textContent = '';
+    status.hidden = true;
+    status.className = 'status-message';
+}
+
+function setStatus(statusId, type, messages) {
+    const status = document.getElementById(statusId);
+    if (!status) return;
+    const summary = Array.isArray(messages) ? messages[0] : messages;
+    const details = Array.isArray(messages) ? messages.slice(1).filter(Boolean) : [];
+    if (!summary) {
+        clearStatus(statusId);
+        return;
+    }
+    status.textContent = '';
+    const summaryNode = document.createElement('div');
+    summaryNode.className = 'status-summary';
+    summaryNode.textContent = summary;
+    status.appendChild(summaryNode);
+    if (details.length) {
+        const list = document.createElement('ul');
+        list.className = 'status-details';
+        details.forEach(detail => {
+            const item = document.createElement('li');
+            item.textContent = detail;
+            list.appendChild(item);
+        });
+        status.appendChild(list);
+    }
+    status.hidden = false;
+    status.className = `status-message ${type}`;
+}
+
+function showConversionStatus(statusId, convertedCount, errors, warnings) {
+    const summary = `Converted: ${convertedCount} | Errors: ${errors.length} | Warnings: ${warnings.length}`;
+    if (errors.length) {
+        setStatus(statusId, 'error', [summary, ...errors, ...warnings]);
+        return;
+    }
+    if (warnings.length) {
+        setStatus(statusId, 'warning', [summary, ...warnings]);
+        return;
+    }
+    if (convertedCount === 0) {
+        setStatus(statusId, 'warning', 'No valid input rows found.');
+        return;
+    }
+    setStatus(statusId, 'success', summary);
+}
+
+const resultViewConfig = {
+    resultsBody: {
+        emptyId: 'gkEmptyState',
+        wrapId: 'gkTableWrap',
+        countId: 'gkResultCount',
+        actionIds: ['copyGkButton', 'saveGkTxtButton']
+    },
+    wgsResultsBody: {
+        emptyId: 'wgsEmptyState',
+        wrapId: 'wgsTableWrap',
+        countId: 'wgsResultCount',
+        actionIds: ['copyWgsButton', 'saveWgsTxtButton']
+    },
+    swerefResultsBody: {
+        emptyId: 'swerefEmptyState',
+        wrapId: 'swerefTableWrap',
+        countId: 'swerefResultCount',
+        actionIds: ['copySwerefButton', 'saveSwerefTxtButton']
+    }
+};
+
+function updateResultView(bodyId) {
+    const config = resultViewConfig[bodyId];
+    const body = document.getElementById(bodyId);
+    if (!config || !body) return;
+    const rowCount = body.querySelectorAll('tr').length;
+    const isEmpty = rowCount === 0;
+    const emptyState = document.getElementById(config.emptyId);
+    const tableWrap = document.getElementById(config.wrapId);
+    const resultCount = document.getElementById(config.countId);
+    if (emptyState) emptyState.hidden = !isEmpty;
+    if (tableWrap) tableWrap.dataset.empty = String(isEmpty);
+    if (resultCount) resultCount.textContent = `${rowCount} ${rowCount === 1 ? 'point' : 'points'}`;
+    config.actionIds.forEach(actionId => {
+        const action = document.getElementById(actionId);
+        if (action) action.disabled = isEmpty;
+    });
+}
+
+function loadCoordinateSample(textareaId, sample, clearFunction) {
+    clearFunction();
+    const textarea = document.getElementById(textareaId);
+    textarea.value = sample;
+    textarea.focus();
+}
+
+function getTableAsTsv(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return '';
+    const rows = Array.from(table.querySelectorAll('tr'));
+    return rows.map(row => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
+        return cells.map(cell => {
+            const link = cell.querySelector('a');
+            const value = link ? link.href : cell.textContent;
+            return value.trim().replace(/\s+/g, ' ');
+        }).join('\t');
+    }).filter(Boolean).join('\n');
+}
+
+function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.className = 'clipboard-helper';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return copied ? Promise.resolve() : Promise.reject(new Error('Clipboard copy failed'));
+}
+
+function copyResults(tableId, statusId) {
+    const text = getTableAsTsv(tableId);
+    const dataRows = document.querySelectorAll(`#${tableId} tbody tr`).length;
+    if (!dataRows) {
+        setStatus(statusId, 'warning', 'No result rows to copy.');
+        return;
+    }
+    copyTextToClipboard(text)
+        .then(() => setStatus(statusId, 'success', `Copied ${dataRows} row${dataRows === 1 ? '' : 's'} to clipboard.`))
+        .catch(() => setStatus(statusId, 'error', 'Clipboard copy failed. Use Save as TXT instead.'));
+}
+
+function isLikelySweref18Area(lat, lng) {
+    // EPSG:3011 is useful near Sweden's 18E zone; warn outside this practical range.
+    return lat >= 54.5 && lat <= 70.0 && lng >= 16.5 && lng <= 19.5;
+}
+
+function getSweref18AreaWarning(lat, lng, lineNumber) {
+    if (isLikelySweref18Area(lat, lng)) return '';
+    return `Line ${lineNumber}: Coordinate is outside the practical SWEREF99 18 00 area. Result is calculated, but verify it before field use.`;
+}
+
+function createSourceToWgsRow(pointID, x, y, height, lat, lng) {
+    const row = document.createElement('tr');
+    appendTextCell(row, pointID);
+    appendTextCell(row, x.toFixed(3));
+    appendTextCell(row, y.toFixed(3));
+    appendTextCell(row, height.toFixed(3));
+    appendTextCell(row, lat.toFixed(6));
+    appendTextCell(row, lng.toFixed(6));
+    appendMapLinkCell(row, lat, lng);
+    return row;
+}
+
+function createWgsTargetRow(pointID, lat, lng, easting, northing) {
+    const row = document.createElement('tr');
+    appendTextCell(row, pointID);
+    appendTextCell(row, lat.toFixed(8));
+    appendTextCell(row, lng.toFixed(8));
+    appendTextCell(row, easting);
+    appendTextCell(row, northing);
+    return row;
+}
+
+// SWEREF99 18 00 to WGS84 conversion functions - Built-in Mathematical Implementation
+
+// WGS84 to SWEREF99 18 00 conversion - Built-in Mathematical Implementation
+
+function convertSwerefToWGS84() {
+    const input = document.getElementById('swerefCoordinates').value;
+    const lines = input.trim().split('\n');
+    const resultsBody = document.getElementById('swerefResultsBody');
+    resultsBody.innerHTML = '';
+    clearStatus('swerefStatus');
+
+    const errors = [];
+    const warnings = [];
+    let convertedCount = 0;
+
+    lines.forEach((line, idx) => {
+        const parsed = parseCoordinateLine(line, 'sweref', idx + 1);
+        if (parsed.skip) return;
+        if (parsed.error) {
+            errors.push(parsed.error);
+            return;
         }
-
-        function appendDownloadLink(fileName, content, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+        if (parsed.defaultedHeight) {
+            warnings.push(`Line ${idx + 1}: Height was missing; 0.000 was used.`);
         }
+        const pointID = parsed.pointID;
+        const xNum = parsed.firstValue;
+        const yNum = parsed.secondValue;
+        const hNum = parsed.heightValue;
 
-        function escapeXml(value) {
-            // KML is XML, so point IDs need XML escaping before export.
-            return String(value)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&apos;');
-        }
+        try {
+            const { lat, lng } = sweref99ToWGS84(xNum, yNum);
 
-        function getDateStamp() {
-            const now = new Date();
-            const dd = String(now.getDate()).padStart(2, '0');
-            const mm = String(now.getMonth() + 1).padStart(2, '0');
-            const yyyy = now.getFullYear();
-            return `${dd}${mm}${yyyy}`;
-        }
-
-        function isTxtFile(file) {
-            // Some mobile browsers leave file.type empty for local .txt files.
-            return file.name.toLowerCase().endsWith('.txt') || file.type === 'text/plain';
-        }
-
-        function isMapLibraryReady(showAlert) {
-            const ready = typeof window.ol !== 'undefined';
-            if (!ready && showAlert) {
-                alert('Map visualization is unavailable because the map library did not load. Check your internet connection and reload the page.');
-            }
-            return ready;
-        }
-
-        const STRICT_DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/;
-
-        function parseStrictDecimal(value) {
-            const text = String(value).trim();
-            if (!STRICT_DECIMAL_PATTERN.test(text)) return null;
-            const number = Number(text);
-            return isFinite(number) ? number : null;
-        }
-
-        const IMPORT_MODE_CONFIG = {
-            gk: {
-                requiresHeight: true,
-                firstName: 'Easting',
-                secondName: 'Northing',
-                isPlausiblePair: (first, second) =>
-                    first >= 2000000 && first <= 6000000 &&
-                    second >= 4500000 && second <= 6500000
-            },
-            sweref: {
-                requiresHeight: true,
-                firstName: 'Easting',
-                secondName: 'Northing',
-                isPlausiblePair: (first, second) =>
-                    first >= 0 && first <= 1500000 &&
-                    second >= 5000000 && second <= 8000000
-            },
-            wgs: {
-                requiresHeight: false,
-                firstName: 'Latitude',
-                secondName: 'Longitude',
-                isPlausiblePair: (first, second) =>
-                    first >= 0 && first <= 90 &&
-                    second >= 0 && second <= 180
-            }
-        };
-
-        function cleanCoordinateLine(line) {
-            const trimmed = String(line)
-                .replace(/^\uFEFF/, '')
-                .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ' ')
-                .trim();
-            if (!trimmed) return { content: '', kind: 'blank' };
-            if (trimmed.startsWith('#') || trimmed.startsWith('//')) {
-                return { content: '', kind: 'comment' };
-            }
-            const withoutInlineComment = trimmed
-                .replace(/\s+#.*$/, '')
-                .replace(/\s+\/\/.*$/, '')
-                .trim();
-            return withoutInlineComment
-                ? { content: withoutInlineComment, kind: 'data' }
-                : { content: '', kind: 'comment' };
-        }
-
-        function parseCoordinateLine(line, mode, lineNumber) {
-            const config = IMPORT_MODE_CONFIG[mode];
-            const cleaned = cleanCoordinateLine(line);
-            if (cleaned.kind !== 'data') {
-                return { skip: true, skipKind: cleaned.kind };
-            }
-            if (!config) {
-                return { error: `Line ${lineNumber}: Unsupported coordinate import mode.` };
-            }
-
-            const tokens = cleaned.content.split(/[\s;|]+/).filter(Boolean);
-            let coordinateIndex = -1;
-            for (let index = 1; index < tokens.length - 1; index++) {
-                const first = parseStrictDecimal(tokens[index]);
-                const second = parseStrictDecimal(tokens[index + 1]);
-                if (first !== null && second !== null && config.isPlausiblePair(first, second)) {
-                    coordinateIndex = index;
-                    break;
-                }
-            }
-
-            // Preserve the legacy standard layout even when coordinates are
-            // outside the practical-area ranges used for flexible recognition.
-            if (
-                coordinateIndex === -1 &&
-                tokens.length >= 3 &&
-                parseStrictDecimal(tokens[1]) !== null &&
-                parseStrictDecimal(tokens[2]) !== null
-            ) {
-                coordinateIndex = 1;
-            }
-
-            if (coordinateIndex === -1) {
-                if (tokens.length >= 3) {
-                    const numericError = getStrictDecimalError(lineNumber, [
-                        { name: config.firstName, value: tokens[1] },
-                        { name: config.secondName, value: tokens[2] }
-                    ]);
-                    if (numericError) return { error: numericError };
-                }
-                return {
-                    error: `Line ${lineNumber}: Could not identify ${config.firstName} and ${config.secondName}.`
-                };
-            }
-
-            const pointID = tokens.slice(0, coordinateIndex).join(' ').trim();
-            if (!pointID) {
-                return { error: `Line ${lineNumber}: PointID is missing.` };
-            }
-
-            const firstText = tokens[coordinateIndex];
-            const secondText = tokens[coordinateIndex + 1];
-            let consumedTokens = coordinateIndex + 2;
-            let heightText = null;
-            let defaultedHeight = false;
-            if (config.requiresHeight) {
-                if (
-                    tokens.length > consumedTokens &&
-                    parseStrictDecimal(tokens[consumedTokens]) !== null
-                ) {
-                    heightText = tokens[consumedTokens];
-                    consumedTokens++;
-                } else {
-                    heightText = '0.000';
-                    defaultedHeight = true;
-                }
-            }
-
-            return {
-                pointID,
-                firstText,
-                secondText,
-                firstValue: parseStrictDecimal(firstText),
-                secondValue: parseStrictDecimal(secondText),
-                heightText,
-                heightValue: heightText === null ? null : parseStrictDecimal(heightText),
-                defaultedHeight,
-                multiPartPointID: coordinateIndex > 1,
-                extraFieldCount: Math.max(0, tokens.length - consumedTokens)
-            };
-        }
-
-        function normalizeImportedCoordinateText(text, mode) {
-            const config = IMPORT_MODE_CONFIG[mode];
-            const normalizedLines = [];
-            const summary = {
-                importedCount: 0,
-                blankCount: 0,
-                commentCount: 0,
-                invalidCount: 0,
-                defaultedHeightCount: 0,
-                multiPartPointIdCount: 0,
-                extraFieldCount: 0
-            };
-
-            String(text).split(/\r?\n/).forEach((line, index) => {
-                const parsed = parseCoordinateLine(line, mode, index + 1);
-                if (parsed.skip) {
-                    if (parsed.skipKind === 'comment') summary.commentCount++;
-                    else summary.blankCount++;
-                    return;
-                }
-                if (parsed.error) {
-                    summary.invalidCount++;
-                    return;
-                }
-
-                const fields = [parsed.pointID, parsed.firstText, parsed.secondText];
-                if (config.requiresHeight) fields.push(parsed.heightText);
-                normalizedLines.push(fields.join('\t'));
-                summary.importedCount++;
-                if (parsed.defaultedHeight) summary.defaultedHeightCount++;
-                if (parsed.multiPartPointID) summary.multiPartPointIdCount++;
-                summary.extraFieldCount += parsed.extraFieldCount;
-            });
-
-            return { text: normalizedLines.join('\n'), summary };
-        }
-
-        function showImportStatus(statusId, summary) {
-            const removedCount = summary.blankCount + summary.commentCount + summary.invalidCount;
-            const headline =
-                `Imported: ${summary.importedCount} | Removed non-data lines: ${removedCount} | ` +
-                `Default heights: ${summary.defaultedHeightCount}`;
-            const details = [];
-            if (summary.defaultedHeightCount) {
-                details.push(`${summary.defaultedHeightCount} row(s) had no height; 0.000 was added.`);
-            }
-            if (summary.multiPartPointIdCount) {
-                details.push(`${summary.multiPartPointIdCount} multi-part point ID(s) were preserved.`);
-            }
-            if (summary.extraFieldCount) {
-                details.push(`${summary.extraFieldCount} trailing field(s) were removed.`);
-            }
-            if (summary.invalidCount) {
-                details.push(`${summary.invalidCount} unrecognized line(s) were removed.`);
-            }
-            if (!summary.importedCount) {
-                setStatus(statusId, 'error', [headline, 'No coordinate records were recognized in the file.']);
+            if (!isFinite(lat) || !isFinite(lng)) {
+                errors.push(`Line ${idx+1}: Conversion failed - invalid result`);
                 return;
             }
-            const type =
-                summary.defaultedHeightCount || summary.extraFieldCount || summary.invalidCount
-                    ? 'warning'
-                    : 'success';
-            setStatus(statusId, type, [headline, ...details]);
+
+            const warning = getSweref18AreaWarning(lat, lng, idx + 1);
+            if (warning) warnings.push(warning);
+            resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
+            convertedCount++;
+        } catch (error) {
+            errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
         }
+    });
 
-        function getStrictDecimalError(lineNumber, fields) {
-            const invalidFields = fields
-                .filter(field => parseStrictDecimal(field.value) === null)
-                .map(field => field.name);
-            if (!invalidFields.length) return '';
-            return `Line ${lineNumber}: Invalid numeric field(s): ${invalidFields.join(', ')}. Use digits and one optional decimal point only.`;
+    showConversionStatus('swerefStatus', convertedCount, errors, warnings);
+    updateResultView('swerefResultsBody');
+
+    // Update map if available
+    if (map && typeof updateMap === 'function') {
+        updateSwerefMap();
+    }
+}
+
+function clearSwerefInput() {
+    document.getElementById('swerefCoordinates').value = '';
+    document.getElementById('swerefResultsBody').innerHTML = '';
+    clearStatus('swerefStatus');
+    updateResultView('swerefResultsBody');
+}
+
+function handleSwerefFileImport(event) {
+    importCoordinateTextFile(
+        event,
+        'sweref',
+        'swerefCoordinates',
+        'swerefStatus',
+        fileName => { lastSwerefImportFileName = fileName; }
+    );
+}
+
+function saveSwerefToTxt() {
+    const rows = document.querySelectorAll('#swerefResultsBody tr');
+    if (!rows.length) {
+        alert('No data to save.');
+        return;
+    }
+
+    let content = 'PointID\tEasting_SWEREF99\tNorthing_SWEREF99\tHeight\tLatitude_WGS84\tLongitude_WGS84\n';
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 6) {
+            content += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent}\t${cells[3].textContent}\t${cells[4].textContent}\t${cells[5].textContent}\n`;
         }
+    });
 
-        function clearStatus(statusId) {
-            const status = document.getElementById(statusId);
-            if (!status) return;
-            status.textContent = '';
-            status.hidden = true;
-            status.className = 'status-message';
+    let fileName = 'sweref99_to_wgs84_results.txt';
+    if (lastSwerefImportFileName && lastSwerefImportFileName.toLowerCase().endsWith('.txt')) {
+        fileName = lastSwerefImportFileName.replace(/\.txt$/i, '_converted.txt');
+    } else {
+        fileName = `sweref99_results_${getDateStamp()}.txt`;
+    }
+
+    appendDownloadLink(fileName, content, 'text/plain');
+}
+
+function updateSwerefMap() {
+    updateMap();
+}
+
+function convertWGS84ToTarget() {
+    const targetSystem = document.getElementById('targetSystem').value;
+    const input = document.getElementById('wgsCoordinates').value;
+    const lines = input.trim().split('\n');
+    const resultsBody = document.getElementById('wgsResultsBody');
+    resultsBody.innerHTML = '';
+    clearStatus('wgsStatus');
+
+    // Update table headers based on target system
+    const eastingHeader = document.getElementById('eastingHeader');
+    const northingHeader = document.getElementById('northingHeader');
+    if (targetSystem === 'sweref99') {
+        eastingHeader.textContent = 'Easting (SWEREF99)';
+        northingHeader.textContent = 'Northing (SWEREF99)';
+    } else {
+        eastingHeader.textContent = 'Easting';
+        northingHeader.textContent = 'Northing';
+    }
+
+    const errors = [];
+    const warnings = [];
+    let convertedCount = 0;
+    lines.forEach((line, idx) => {
+        const parsed = parseCoordinateLine(line, 'wgs', idx + 1);
+        if (parsed.skip) return;
+        if (parsed.error) {
+            errors.push(parsed.error);
+            return;
         }
-
-        function setStatus(statusId, type, messages) {
-            const status = document.getElementById(statusId);
-            if (!status) return;
-            const summary = Array.isArray(messages) ? messages[0] : messages;
-            const details = Array.isArray(messages) ? messages.slice(1).filter(Boolean) : [];
-            if (!summary) {
-                clearStatus(statusId);
-                return;
-            }
-            status.textContent = '';
-            const summaryNode = document.createElement('div');
-            summaryNode.className = 'status-summary';
-            summaryNode.textContent = summary;
-            status.appendChild(summaryNode);
-            if (details.length) {
-                const list = document.createElement('ul');
-                list.className = 'status-details';
-                details.forEach(detail => {
-                    const item = document.createElement('li');
-                    item.textContent = detail;
-                    list.appendChild(item);
-                });
-                status.appendChild(list);
-            }
-            status.hidden = false;
-            status.className = `status-message ${type}`;
-        }
-
-        function showConversionStatus(statusId, convertedCount, errors, warnings) {
-            const summary = `Converted: ${convertedCount} | Errors: ${errors.length} | Warnings: ${warnings.length}`;
-            if (errors.length) {
-                setStatus(statusId, 'error', [summary, ...errors, ...warnings]);
-                return;
-            }
-            if (warnings.length) {
-                setStatus(statusId, 'warning', [summary, ...warnings]);
-                return;
-            }
-            if (convertedCount === 0) {
-                setStatus(statusId, 'warning', 'No valid input rows found.');
-                return;
-            }
-            setStatus(statusId, 'success', summary);
-        }
-
-        function getTableAsTsv(tableId) {
-            const table = document.getElementById(tableId);
-            if (!table) return '';
-            const rows = Array.from(table.querySelectorAll('tr'));
-            return rows.map(row => {
-                const cells = Array.from(row.querySelectorAll('th, td'));
-                return cells.map(cell => {
-                    const link = cell.querySelector('a');
-                    const value = link ? link.href : cell.textContent;
-                    return value.trim().replace(/\s+/g, ' ');
-                }).join('\t');
-            }).filter(Boolean).join('\n');
-        }
-
-        function copyTextToClipboard(text) {
-            if (navigator.clipboard && window.isSecureContext) {
-                return navigator.clipboard.writeText(text);
-            }
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.setAttribute('readonly', '');
-            textarea.className = 'clipboard-helper';
-            document.body.appendChild(textarea);
-            textarea.select();
-            const copied = document.execCommand('copy');
-            document.body.removeChild(textarea);
-            return copied ? Promise.resolve() : Promise.reject(new Error('Clipboard copy failed'));
-        }
-
-        function copyResults(tableId, statusId) {
-            const text = getTableAsTsv(tableId);
-            const dataRows = document.querySelectorAll(`#${tableId} tbody tr`).length;
-            if (!dataRows) {
-                setStatus(statusId, 'warning', 'No result rows to copy.');
-                return;
-            }
-            copyTextToClipboard(text)
-                .then(() => setStatus(statusId, 'success', `Copied ${dataRows} row${dataRows === 1 ? '' : 's'} to clipboard.`))
-                .catch(() => setStatus(statusId, 'error', 'Clipboard copy failed. Use Save as TXT instead.'));
-        }
-
-        function isLikelySweref18Area(lat, lng) {
-            // EPSG:3011 is useful near Sweden's 18E zone; warn outside this practical range.
-            return lat >= 54.5 && lat <= 70.0 && lng >= 16.5 && lng <= 19.5;
-        }
-
-        function getSweref18AreaWarning(lat, lng, lineNumber) {
-            if (isLikelySweref18Area(lat, lng)) return '';
-            return `Line ${lineNumber}: Coordinate is outside the practical SWEREF99 18 00 area. Result is calculated, but verify it before field use.`;
-        }
-
-        function createSourceToWgsRow(pointID, x, y, height, lat, lng) {
-            const row = document.createElement('tr');
-            appendTextCell(row, pointID);
-            appendTextCell(row, x.toFixed(3));
-            appendTextCell(row, y.toFixed(3));
-            appendTextCell(row, height.toFixed(3));
-            appendTextCell(row, lat.toFixed(6));
-            appendTextCell(row, lng.toFixed(6));
-            appendMapLinkCell(row, lat, lng);
-            return row;
-        }
-
-        function createWgsTargetRow(pointID, lat, lng, easting, northing) {
-            const row = document.createElement('tr');
-            appendTextCell(row, pointID);
-            appendTextCell(row, lat.toFixed(8));
-            appendTextCell(row, lng.toFixed(8));
-            appendTextCell(row, easting);
-            appendTextCell(row, northing);
-            return row;
-        }
-
-        // SWEREF99 18 00 to WGS84 conversion functions - Built-in Mathematical Implementation
-        function sweref99ToWGS84(easting, northing) {
-            // SWEREF99 18 00 parameters (EPSG:3011)
-            var a = 6378137.0;              // Semi-major axis (GRS80)
-            var f = 1 / 298.257222101;      // Flattening (GRS80)
-            var lat0 = 0.0;                 // Latitude of natural origin (degrees)
-            var lon0 = 18.0;                // Longitude of natural origin (degrees)
-            var k0 = 1.0;                   // Scale factor at natural origin
-            var x0 = 150000.0;              // False easting (meters)
-            var y0 = 0.0;                   // False northing (meters)
-            
-            // Convert to radians
-            var DEG_TO_RAD = Math.PI / 180.0;
-            var RAD_TO_DEG = 180.0 / Math.PI;
-            
-            lat0 *= DEG_TO_RAD;
-            lon0 *= DEG_TO_RAD;
-            
-            // Derived constants
-            var b = a * (1 - f);           // Semi-minor axis
-            var e2 = 2 * f - f * f;        // First eccentricity squared
-            var e = Math.sqrt(e2);         // First eccentricity
-            var e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
-            
-            // Remove false easting and northing
-            var x = easting - x0;
-            var y = northing - y0;
-            
-            // Calculate meridional arc
-            var M0 = 0; // M0 = 0 since lat0 = 0
-            var M = M0 + y / k0;
-            
-            // Calculate footprint latitude
-            var mu = M / (a * (1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256));
-            
-            var e1_2 = e1 * e1;
-            var e1_3 = e1_2 * e1;
-            var e1_4 = e1_3 * e1;
-            
-            var fp = mu + (3*e1/2 - 27*e1_3/32) * Math.sin(2*mu) 
-                       + (21*e1_2/16 - 55*e1_4/32) * Math.sin(4*mu)
-                       + (151*e1_3/96) * Math.sin(6*mu)
-                       + (1097*e1_4/512) * Math.sin(8*mu);
-            
-            // Calculate radius of curvature
-            var sin_fp = Math.sin(fp);
-            var cos_fp = Math.cos(fp);
-            var tan_fp = Math.tan(fp);
-            var tan2_fp = tan_fp * tan_fp;
-            var tan4_fp = tan2_fp * tan2_fp;
-            
-            var n1 = a / Math.sqrt(1 - e2 * sin_fp * sin_fp);
-            var r1 = a * (1 - e2) / Math.pow(1 - e2 * sin_fp * sin_fp, 1.5);
-            var d = x / (n1 * k0);
-            var d2 = d * d;
-            var d3 = d2 * d;
-            var d4 = d3 * d;
-            var d5 = d4 * d;
-            var d6 = d5 * d;
-            
-            var c1 = e2 * cos_fp * cos_fp / (1 - e2);
-            var c1_2 = c1 * c1;
-            
-            // Calculate latitude
-            var lat = fp - (n1 * tan_fp / r1) * (d2/2 - (5 + 3*tan2_fp + 10*c1 - 4*c1_2 - 9*e2*cos_fp*cos_fp) * d4/24
-                      + (61 + 90*tan2_fp + 298*c1 + 45*tan4_fp - 252*e2*cos_fp*cos_fp - 3*c1_2) * d6/720);
-            
-            // Calculate longitude
-            var lon = lon0 + (d - (1 + 2*tan2_fp + c1) * d3/6 
-                           + (5 - 2*c1 + 28*tan2_fp - 3*c1_2 + 8*e2*cos_fp*cos_fp + 24*tan4_fp) * d5/120) / cos_fp;
-            
-            // Convert to degrees
-            return {
-                lat: lat * RAD_TO_DEG,
-                lng: lon * RAD_TO_DEG
-            };
-        }
-
-        // WGS84 to SWEREF99 18 00 conversion - Built-in Mathematical Implementation
-        function wgs84ToSweref99(lat, lng) {
-            // SWEREF99 18 00 parameters (EPSG:3011)
-            var a = 6378137.0;              // Semi-major axis (GRS80)
-            var f = 1 / 298.257222101;      // Flattening (GRS80)
-            var lat0 = 0.0;                 // Latitude of natural origin (degrees)
-            var lon0 = 18.0;                // Longitude of natural origin (degrees)
-            var k0 = 1.0;                   // Scale factor at natural origin
-            var x0 = 150000.0;              // False easting (meters)
-            var y0 = 0.0;                   // False northing (meters)
-            
-            // Convert to radians
-            var DEG_TO_RAD = Math.PI / 180.0;
-            
-            lat *= DEG_TO_RAD;
-            lng *= DEG_TO_RAD;
-            lat0 *= DEG_TO_RAD;
-            lon0 *= DEG_TO_RAD;
-            
-            // Derived constants
-            var b = a * (1 - f);           // Semi-minor axis
-            var e2 = 2 * f - f * f;        // First eccentricity squared
-            var e = Math.sqrt(e2);         // First eccentricity
-            
-            // Calculate radius of curvature in the prime vertical
-            var sin_lat = Math.sin(lat);
-            var cos_lat = Math.cos(lat);
-            var tan_lat = Math.tan(lat);
-            var tan2_lat = tan_lat * tan_lat;
-            var tan4_lat = tan2_lat * tan2_lat;
-            
-            var n = a / Math.sqrt(1 - e2 * sin_lat * sin_lat);
-            var c = e2 * cos_lat * cos_lat / (1 - e2);
-            var c2 = c * c;
-            var a2 = (lng - lon0) * cos_lat;
-            var a2_2 = a2 * a2;
-            var a2_3 = a2_2 * a2;
-            var a2_4 = a2_3 * a2;
-            var a2_5 = a2_4 * a2;
-            var a2_6 = a2_5 * a2;
-            
-            // Calculate meridional arc
-            var M0 = 0; // M0 = 0 since lat0 = 0
-            var M = a * ((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256) * lat
-                       - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024) * Math.sin(2*lat)
-                       + (15*e2*e2/256 + 45*e2*e2*e2/1024) * Math.sin(4*lat)
-                       - (35*e2*e2*e2/3072) * Math.sin(6*lat));
-            
-            // Calculate coordinates
-            var x = k0 * n * (a2 + (1 - tan2_lat + c) * a2_3 / 6
-                           + (5 - 18*tan2_lat + tan4_lat + 72*c - 58*e2*cos_lat*cos_lat) * a2_5 / 120);
-            
-            var y = k0 * (M - M0 + n * tan_lat * (a2_2/2 + (5 - tan2_lat + 9*c + 4*c2) * a2_4/24
-                          + (61 - 58*tan2_lat + tan4_lat + 600*c - 330*e2*cos_lat*cos_lat) * a2_6/720));
-            
-            return {
-                x: x + x0,
-                y: y + y0
-            };
-        }
-
-        function convertSwerefToWGS84() {
-            const input = document.getElementById('swerefCoordinates').value;
-            const lines = input.trim().split('\n');
-            const resultsBody = document.getElementById('swerefResultsBody');
-            resultsBody.innerHTML = '';
-            clearStatus('swerefStatus');
-            
-            const errors = [];
-            const warnings = [];
-            let convertedCount = 0;
-
-            lines.forEach((line, idx) => {
-                const parsed = parseCoordinateLine(line, 'sweref', idx + 1);
-                if (parsed.skip) return;
-                if (parsed.error) {
-                    errors.push(parsed.error);
-                    return;
-                }
-                if (parsed.defaultedHeight) {
-                    warnings.push(`Line ${idx + 1}: Height was missing; 0.000 was used.`);
-                }
-                const pointID = parsed.pointID;
-                const xNum = parsed.firstValue;
-                const yNum = parsed.secondValue;
-                const hNum = parsed.heightValue;
-                
-                try {
-                    const { lat, lng } = sweref99ToWGS84(xNum, yNum);
-                    
-                    if (!isFinite(lat) || !isFinite(lng)) {
-                        errors.push(`Line ${idx+1}: Conversion failed - invalid result`);
-                        return;
-                    }
-                    
-                    const warning = getSweref18AreaWarning(lat, lng, idx + 1);
-                    if (warning) warnings.push(warning);
-                    resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
-                    convertedCount++;
-                } catch (error) {
-                    errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
-                }
-            });
-            
-            showConversionStatus('swerefStatus', convertedCount, errors, warnings);
-            
-            // Update map if available
-            if (map && typeof updateMap === 'function') {
-                updateSwerefMap();
-            }
-        }
-
-        function clearSwerefInput() {
-            document.getElementById('swerefCoordinates').value = '';
-            document.getElementById('swerefResultsBody').innerHTML = '';
-            clearStatus('swerefStatus');
-        }
-
-        function handleSwerefFileImport(event) {
-            importCoordinateTextFile(
-                event,
-                'sweref',
-                'swerefCoordinates',
-                'swerefStatus',
-                fileName => { lastSwerefImportFileName = fileName; }
-            );
-        }
-
-        function saveSwerefToTxt() {
-            const rows = document.querySelectorAll('#swerefResultsBody tr');
-            if (!rows.length) {
-                alert('No data to save.');
-                return;
-            }
-            
-            let content = 'PointID\tEasting_SWEREF99\tNorthing_SWEREF99\tHeight\tLatitude_WGS84\tLongitude_WGS84\n';
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 6) {
-                    content += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent}\t${cells[3].textContent}\t${cells[4].textContent}\t${cells[5].textContent}\n`;
-                }
-            });
-            
-            let fileName = 'sweref99_to_wgs84_results.txt';
-            if (lastSwerefImportFileName && lastSwerefImportFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastSwerefImportFileName.replace(/\.txt$/i, '_converted.txt');
-            } else {
-                fileName = `sweref99_results_${getDateStamp()}.txt`;
-            }
-            
-            appendDownloadLink(fileName, content, 'text/plain');
-        }
-
-        function updateSwerefMap() {
-            updateMap();
-        }
-
-        function convertWGS84ToTarget() {
-            const targetSystem = document.getElementById('targetSystem').value;
-            const input = document.getElementById('wgsCoordinates').value;
-            const lines = input.trim().split('\n');
-            const resultsBody = document.getElementById('wgsResultsBody');
-            resultsBody.innerHTML = '';
-            clearStatus('wgsStatus');
-            
-            // Update table headers based on target system
-            const eastingHeader = document.getElementById('eastingHeader');
-            const northingHeader = document.getElementById('northingHeader');
+        const pointID = parsed.pointID;
+        const latNum = parsed.firstValue;
+        const lngNum = parsed.secondValue;
+        try {
+            let result;
             if (targetSystem === 'sweref99') {
-                eastingHeader.textContent = 'Easting (SWEREF99)';
-                northingHeader.textContent = 'Northing (SWEREF99)';
-            } else {
-                eastingHeader.textContent = 'Easting';
-                northingHeader.textContent = 'Northing';
-            }
-            
-            const errors = [];
-            const warnings = [];
-            let convertedCount = 0;
-            lines.forEach((line, idx) => {
-                const parsed = parseCoordinateLine(line, 'wgs', idx + 1);
-                if (parsed.skip) return;
-                if (parsed.error) {
-                    errors.push(parsed.error);
+                // Convert WGS84 to SWEREF99
+                const warning = getSweref18AreaWarning(latNum, lngNum, idx + 1);
+                if (warning) warnings.push(warning);
+                result = wgs84ToSweref99(latNum, lngNum);
+                if (!result || !isFinite(result.x) || !isFinite(result.y)) {
+                    errors.push(`Line ${idx+1}: SWEREF99 conversion failed`);
                     return;
                 }
-                const pointID = parsed.pointID;
-                const latNum = parsed.firstValue;
-                const lngNum = parsed.secondValue;
-                try {
-                    let result;
-                    if (targetSystem === 'sweref99') {
-                        // Convert WGS84 to SWEREF99
-                        const warning = getSweref18AreaWarning(latNum, lngNum, idx + 1);
-                        if (warning) warnings.push(warning);
-                        result = wgs84ToSweref99(latNum, lngNum);
-                        if (!result || !isFinite(result.x) || !isFinite(result.y)) {
-                            errors.push(`Line ${idx+1}: SWEREF99 conversion failed`);
-                            return;
-                        }
-                        resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, result.x.toFixed(3), result.y.toFixed(3)));
-                        convertedCount++;
-                    } else {
-                        // Convert WGS84 to GK (existing functionality)
-                        const pot = wgs2pot(lngNum, latNum);
-                        if (!pot || !isFinite(pot.lng) || !isFinite(pot.lat)) {
-                            errors.push(`Line ${idx+1}: Datum shift failed`);
-                            return;
-                        }
-                        const gk = Dezimal2GK(pot.lng, pot.lat);
-                        if (!gk || !gk.r || !gk.h) {
-                            errors.push(`Line ${idx+1}: GK conversion failed. The point is outside the Germany-focused GK range used by the app.`);
-                            return;
-                        }
-                        resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, gk.r, gk.h));
-                        convertedCount++;
-                    }
-                } catch (error) {
-                    errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
+                resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, result.x.toFixed(3), result.y.toFixed(3)));
+                convertedCount++;
+            } else {
+                // Convert WGS84 to GK (existing functionality)
+                const pot = wgs2pot(lngNum, latNum);
+                if (!pot || !isFinite(pot.lng) || !isFinite(pot.lat)) {
+                    errors.push(`Line ${idx+1}: Datum shift failed`);
+                    return;
                 }
-            });
-            showConversionStatus('wgsStatus', convertedCount, errors, warnings);
-            if (map && typeof updateMap === 'function') {
-                updateMap();
+                const gk = Dezimal2GK(pot.lng, pot.lat);
+                if (!gk || !gk.r || !gk.h) {
+                    errors.push(`Line ${idx+1}: GK conversion failed. The point is outside the Germany-focused GK range used by the app.`);
+                    return;
+                }
+                resultsBody.appendChild(createWgsTargetRow(pointID, latNum, lngNum, gk.r, gk.h));
+                convertedCount++;
             }
+        } catch (error) {
+            errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
         }
+    });
+    showConversionStatus('wgsStatus', convertedCount, errors, warnings);
+    updateResultView('wgsResultsBody');
+    if (map && typeof updateMap === 'function') {
+        updateMap();
+    }
+}
 
-        function convertWGS84ToGK() {
-            // Legacy function - redirect to new function
-            document.getElementById('targetSystem').value = 'gk';
-            convertWGS84ToTarget();
-        }
+function convertWGS84ToGK() {
+    // Legacy function - redirect to new function
+    document.getElementById('targetSystem').value = 'gk';
+    convertWGS84ToTarget();
+}
 
-        let map, vectorSource, vectorLayer;
+let map, vectorSource, vectorLayer;
 
-        function initMap(showAlert = false) {
-            if (map) return true;
-            if (!isMapLibraryReady(showAlert)) return false;
-            vectorSource = new ol.source.Vector();
-            vectorLayer = new ol.layer.Vector({
-                source: vectorSource
+function initMap(showAlert = false) {
+    if (map) return true;
+    if (!isMapLibraryReady(showAlert)) return false;
+    vectorSource = new ol.source.Vector();
+    vectorLayer = new ol.layer.Vector({
+        source: vectorSource
+    });
+    map = new ol.Map({
+        target: 'mapContainer',
+        layers: [
+            new ol.layer.Tile({ source: new ol.source.OSM() }),
+            vectorLayer
+        ],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([10.0, 51.0]),
+            zoom: 6
+        })
+    });
+    return true;
+}
+
+function collectMapPoints() {
+    // WGS84 coordinates are read from the visible result tables, including WGS84-to-target inputs.
+    const allPoints = [];
+
+    const collectRows = (selector, latIndex, lngIndex, source) => {
+        document.querySelectorAll(selector).forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length <= Math.max(latIndex, lngIndex)) return;
+            const pointID = cells[0].textContent.trim();
+            const lat = parseFloat(cells[latIndex].textContent);
+            const lng = parseFloat(cells[lngIndex].textContent);
+            if (!isFinite(lat) || !isFinite(lng)) return;
+            allPoints.push({ pointID, lat, lng, source });
+        });
+    };
+
+    collectRows('#resultsBody tr', 4, 5, 'GK');
+    collectRows('#swerefResultsBody tr', 4, 5, 'SWEREF99');
+    collectRows('#wgsResultsBody tr', 1, 2, 'WGS84');
+
+    return allPoints;
+}
+
+function updateMap() {
+    if (!map || !vectorSource) return;
+    vectorSource.clear();
+    const allPoints = collectMapPoints();
+
+    if (allPoints.length > 0) {
+        allPoints.forEach(pt => {
+            const pointFeature = new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([pt.lng, pt.lat]))
             });
-            map = new ol.Map({
-                target: 'mapContainer',
-                layers: [
-                    new ol.layer.Tile({ source: new ol.source.OSM() }),
-                    vectorLayer
-                ],
-                view: new ol.View({
-                    center: ol.proj.fromLonLat([10.0, 51.0]),
-                    zoom: 6
+
+            // Different colors for different sources
+            const color = pt.source === 'SWEREF99' ? '#2196F3' : pt.source === 'WGS84' ? '#607D8B' : '#4CAF50';
+
+            pointFeature.setStyle(new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 8,
+                    fill: new ol.style.Fill({ color: color }),
+                    stroke: new ol.style.Stroke({ color: '#fff', width: 2 })
                 })
+            }));
+
+            const textFeature = new ol.Feature({
+                geometry: new ol.geom.Point(ol.proj.fromLonLat([pt.lng, pt.lat]))
             });
-            return true;
+            textFeature.setStyle(new ol.style.Style({
+                text: new ol.style.Text({
+                    text: pt.pointID,
+                    font: 'bold 13px Arial',
+                    fill: new ol.style.Fill({ color: '#FF9800' }),
+                    stroke: new ol.style.Stroke({ color: '#fff', width: 3 }),
+                    offsetY: -18
+                })
+            }));
+
+            vectorSource.addFeature(pointFeature);
+            vectorSource.addFeature(textFeature);
+        });
+
+        map.getView().setCenter(ol.proj.fromLonLat([allPoints[0].lng, allPoints[0].lat]));
+        map.getView().setZoom(13);
+    } else {
+        map.getView().setCenter(ol.proj.fromLonLat([10.0, 51.0]));
+        map.getView().setZoom(6);
+    }
+}
+
+function clearInput() {
+    document.getElementById('coordinates').value = '';
+    document.getElementById('resultsBody').innerHTML = '';
+    clearStatus('gkStatus');
+    updateResultView('resultsBody');
+}
+
+function clearWGSInput() {
+    document.getElementById('wgsCoordinates').value = '';
+    document.getElementById('wgsResultsBody').innerHTML = '';
+    clearStatus('wgsStatus');
+    updateResultView('wgsResultsBody');
+}
+
+function handleWGSFileImport(event) {
+    importCoordinateTextFile(
+        event,
+        'wgs',
+        'wgsCoordinates',
+        'wgsStatus',
+        fileName => { lastWgsImportFileName = fileName; }
+    );
+}
+
+function saveToTxt() {
+    const rows = document.querySelectorAll('#resultsBody tr');
+    if (!rows.length) {
+        alert('No data to save.');
+        return;
+    }
+
+    let content = 'PointID\tEasting_GK\tNorthing_GK\tHeight\tLatitude_WGS84\tLongitude_WGS84\n';
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 6) {
+            content += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent}\t${cells[3].textContent}\t${cells[4].textContent}\t${cells[5].textContent}\n`;
         }
+    });
 
-        function collectMapPoints() {
-            // WGS84 coordinates are read from the visible result tables, including WGS84-to-target inputs.
-            const allPoints = [];
+    let fileName = 'gk_to_wgs84_results.txt';
+    if (lastGkImportFileName && lastGkImportFileName.toLowerCase().endsWith('.txt')) {
+        fileName = lastGkImportFileName.replace(/\.txt$/i, '_converted.txt');
+    } else {
+        fileName = `gk_results_${getDateStamp()}.txt`;
+    }
 
-            const collectRows = (selector, latIndex, lngIndex, source) => {
-                document.querySelectorAll(selector).forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    if (cells.length <= Math.max(latIndex, lngIndex)) return;
-                    const pointID = cells[0].textContent.trim();
-                    const lat = parseFloat(cells[latIndex].textContent);
-                    const lng = parseFloat(cells[lngIndex].textContent);
-                    if (!isFinite(lat) || !isFinite(lng)) return;
-                    allPoints.push({ pointID, lat, lng, source });
-                });
-            };
+    appendDownloadLink(fileName, content, 'text/plain');
+}
 
-            collectRows('#resultsBody tr', 4, 5, 'GK');
-            collectRows('#swerefResultsBody tr', 4, 5, 'SWEREF99');
-            collectRows('#wgsResultsBody tr', 1, 2, 'WGS84');
+function saveWGS84ToTxt() {
+    const rows = document.querySelectorAll('#wgsResultsBody tr');
+    if (!rows.length) {
+        alert('No data to save.');
+        return;
+    }
 
-            return allPoints;
+    const targetSystem = document.getElementById('targetSystem').value;
+    let content;
+
+    if (targetSystem === 'sweref99') {
+        content = 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_SWEREF99\tNorthing_SWEREF99\n';
+    } else {
+        content = 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_GK\tNorthing_GK\n';
+    }
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 5) {
+            content += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent}\t${cells[3].textContent}\t${cells[4].textContent}\n`;
         }
+    });
 
-        function updateMap() {
-            if (!map || !vectorSource) return;
-            vectorSource.clear();
-            const allPoints = collectMapPoints();
-            
-            if (allPoints.length > 0) {
-                allPoints.forEach(pt => {
-                    const pointFeature = new ol.Feature({
-                        geometry: new ol.geom.Point(ol.proj.fromLonLat([pt.lng, pt.lat]))
-                    });
-                    
-                    // Different colors for different sources
-                    const color = pt.source === 'SWEREF99' ? '#2196F3' : pt.source === 'WGS84' ? '#607D8B' : '#4CAF50';
-                    
-                    pointFeature.setStyle(new ol.style.Style({
-                        image: new ol.style.Circle({
-                            radius: 8,
-                            fill: new ol.style.Fill({ color: color }),
-                            stroke: new ol.style.Stroke({ color: '#fff', width: 2 })
-                        })
-                    }));
-                    
-                    const textFeature = new ol.Feature({
-                        geometry: new ol.geom.Point(ol.proj.fromLonLat([pt.lng, pt.lat]))
-                    });
-                    textFeature.setStyle(new ol.style.Style({
-                        text: new ol.style.Text({
-                            text: pt.pointID,
-                            font: 'bold 13px Arial',
-                            fill: new ol.style.Fill({ color: '#FF9800' }),
-                            stroke: new ol.style.Stroke({ color: '#fff', width: 3 }),
-                            offsetY: -18
-                        })
-                    }));
-                    
-                    vectorSource.addFeature(pointFeature);
-                    vectorSource.addFeature(textFeature);
-                });
-                
-                map.getView().setCenter(ol.proj.fromLonLat([allPoints[0].lng, allPoints[0].lat]));
-                map.getView().setZoom(13);
-            } else {
-                map.getView().setCenter(ol.proj.fromLonLat([10.0, 51.0]));
-                map.getView().setZoom(6);
-            }
+    let fileName;
+    if (targetSystem === 'sweref99') {
+        fileName = 'wgs84_to_sweref99_results.txt';
+    } else {
+        fileName = 'wgs84_to_gk_results.txt';
+    }
+
+    if (lastWgsImportFileName && lastWgsImportFileName.toLowerCase().endsWith('.txt')) {
+        const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
+        fileName = lastWgsImportFileName.replace(/\.txt$/i, `${systemSuffix}_converted.txt`);
+    } else {
+        const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
+        fileName = `wgs84${systemSuffix}_results_${getDateStamp()}.txt`;
+    }
+
+    appendDownloadLink(fileName, content, 'text/plain');
+}
+
+function convertCoordinates() {
+    const input = document.getElementById('coordinates').value;
+    const lines = input.trim().split('\n');
+    const resultsBody = document.getElementById('resultsBody');
+    resultsBody.innerHTML = '';
+    clearStatus('gkStatus');
+    const errors = [];
+    const warnings = [];
+    let convertedCount = 0;
+    lines.forEach((line, idx) => {
+        const parsed = parseCoordinateLine(line, 'gk', idx + 1);
+        if (parsed.skip) return;
+        if (parsed.error) {
+            errors.push(parsed.error);
+            return;
         }
-
-        function clearInput() {
-            document.getElementById('coordinates').value = '';
-            document.getElementById('resultsBody').innerHTML = '';
-            clearStatus('gkStatus');
+        if (parsed.defaultedHeight) {
+            warnings.push(`Line ${idx + 1}: Height was missing; 0.000 was used.`);
         }
-
-        function clearWGSInput() {
-            document.getElementById('wgsCoordinates').value = '';
-            document.getElementById('wgsResultsBody').innerHTML = '';
-            clearStatus('wgsStatus');
+        const pointID = parsed.pointID;
+        const xNum = parsed.firstValue;
+        const yNum = parsed.secondValue;
+        const hNum = parsed.heightValue;
+        try {
+            const { lat, lng } = gk2geo(xNum, yNum);
+            resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
+            convertedCount++;
+        } catch (error) {
+            errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
         }
+    });
+    showConversionStatus('gkStatus', convertedCount, errors, warnings);
+    updateResultView('resultsBody');
+    if (map && typeof updateMap === 'function') {
+        updateMap();
+    }
+}
 
-        function handleWGSFileImport(event) {
-            importCoordinateTextFile(
-                event,
-                'wgs',
-                'wgsCoordinates',
-                'wgsStatus',
-                fileName => { lastWgsImportFileName = fileName; }
-            );
+function getGoogleMapsLink(lat, lon) {
+    return `https://maps.google.com/?q=${lat},${lon}`;
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.hidden = true;
+    });
+    const selectedPanel = document.getElementById(tabId);
+    selectedPanel.classList.add('active');
+    selectedPanel.hidden = false;
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+        tab.setAttribute('aria-selected', 'false');
+        tab.setAttribute('tabindex', '-1');
+        if (tab.dataset.tab === tabId) {
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+            tab.setAttribute('tabindex', '0');
         }
-
-        function saveToTxt() {
-            const rows = document.querySelectorAll('#resultsBody tr');
-            if (!rows.length) {
-                alert('No data to save.');
-                return;
-            }
-            
-            let content = 'PointID\tEasting_GK\tNorthing_GK\tHeight\tLatitude_WGS84\tLongitude_WGS84\n';
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 6) {
-                    content += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent}\t${cells[3].textContent}\t${cells[4].textContent}\t${cells[5].textContent}\n`;
-                }
-            });
-            
-            let fileName = 'gk_to_wgs84_results.txt';
-            if (lastGkImportFileName && lastGkImportFileName.toLowerCase().endsWith('.txt')) {
-                fileName = lastGkImportFileName.replace(/\.txt$/i, '_converted.txt');
-            } else {
-                fileName = `gk_results_${getDateStamp()}.txt`;
-            }
-            
-            appendDownloadLink(fileName, content, 'text/plain');
-        }
-
-        function saveWGS84ToTxt() {
-            const rows = document.querySelectorAll('#wgsResultsBody tr');
-            if (!rows.length) {
-                alert('No data to save.');
-                return;
-            }
-            
-            const targetSystem = document.getElementById('targetSystem').value;
-            let content;
-            
-            if (targetSystem === 'sweref99') {
-                content = 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_SWEREF99\tNorthing_SWEREF99\n';
-            } else {
-                content = 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_GK\tNorthing_GK\n';
-            }
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 5) {
-                    content += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent}\t${cells[3].textContent}\t${cells[4].textContent}\n`;
-                }
-            });
-            
-            let fileName;
-            if (targetSystem === 'sweref99') {
-                fileName = 'wgs84_to_sweref99_results.txt';
-            } else {
-                fileName = 'wgs84_to_gk_results.txt';
-            }
-            
-            if (lastWgsImportFileName && lastWgsImportFileName.toLowerCase().endsWith('.txt')) {
-                const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-                fileName = lastWgsImportFileName.replace(/\.txt$/i, `${systemSuffix}_converted.txt`);
-            } else {
-                const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-                fileName = `wgs84${systemSuffix}_results_${getDateStamp()}.txt`;
-            }
-            
-            appendDownloadLink(fileName, content, 'text/plain');
-        }
-
-        function convertCoordinates() {
-            const input = document.getElementById('coordinates').value;
-            const lines = input.trim().split('\n');
-            const resultsBody = document.getElementById('resultsBody');
-            resultsBody.innerHTML = '';
-            clearStatus('gkStatus');
-            const errors = [];
-            const warnings = [];
-            let convertedCount = 0;
-            lines.forEach((line, idx) => {
-                const parsed = parseCoordinateLine(line, 'gk', idx + 1);
-                if (parsed.skip) return;
-                if (parsed.error) {
-                    errors.push(parsed.error);
-                    return;
-                }
-                if (parsed.defaultedHeight) {
-                    warnings.push(`Line ${idx + 1}: Height was missing; 0.000 was used.`);
-                }
-                const pointID = parsed.pointID;
-                const xNum = parsed.firstValue;
-                const yNum = parsed.secondValue;
-                const hNum = parsed.heightValue;
-                try {
-                    const { lat, lng } = gk2geo(xNum, yNum);
-                    resultsBody.appendChild(createSourceToWgsRow(pointID, xNum, yNum, hNum, lat, lng));
-                    convertedCount++;
-                } catch (error) {
-                    errors.push(`Line ${idx+1}: Error converting coordinates: ${error && error.message ? error.message : error}`);
-                }
-            });
-            showConversionStatus('gkStatus', convertedCount, errors, warnings);
-            if (map && typeof updateMap === 'function') {
+    });
+    if (tabId === 'map') {
+        if (initMap(true)) {
+            requestAnimationFrame(() => {
+                map.updateSize();
                 updateMap();
-            }
-        }
-
-        function getGoogleMapsLink(lat, lon) {
-            return `https://maps.google.com/?q=${lat},${lon}`;
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-                content.hidden = true;
             });
-            const selectedPanel = document.getElementById(tabId);
-            selectedPanel.classList.add('active');
-            selectedPanel.hidden = false;
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-                tab.setAttribute('aria-selected', 'false');
-                tab.setAttribute('tabindex', '-1');
-                if (tab.dataset.tab === tabId) {
-                    tab.classList.add('active');
-                    tab.setAttribute('aria-selected', 'true');
-                    tab.setAttribute('tabindex', '0');
-                }
-            });
-            if (tabId === 'map') {
-                if (initMap(true)) {
-                    updateMap();
-                }
-            }
         }
+    }
+}
 
-        let lastGkImportFileName = null;
-        let lastWgsImportFileName = null;
-        let lastSwerefImportFileName = null;
+let lastGkImportFileName = null;
+let lastWgsImportFileName = null;
+let lastSwerefImportFileName = null;
 
-        function importCoordinateTextFile(event, mode, textareaId, statusId, rememberFileName) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (!isTxtFile(file)) {
-                alert('Please select a text file (.txt)');
-                event.target.value = '';
-                return;
+function importCoordinateTextFile(event, mode, textareaId, statusId, rememberFileName) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!isTxtFile(file)) {
+        alert('Please select a text file (.txt)');
+        event.target.value = '';
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File too large. Maximum size: 5MB');
+        event.target.value = '';
+        return;
+    }
+    rememberFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const normalized = normalizeImportedCoordinateText(e.target.result, mode);
+        document.getElementById(textareaId).value = normalized.text;
+        showImportStatus(statusId, normalized.summary);
+    };
+    reader.onerror = function() {
+        alert('Error reading file');
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function handleFileImport(event) {
+    importCoordinateTextFile(
+        event,
+        'gk',
+        'coordinates',
+        'gkStatus',
+        fileName => { lastGkImportFileName = fileName; }
+    );
+}
+
+function exportKML() {
+    // KML uses all WGS84 coordinates currently present in the result tables.
+    const allPoints = collectMapPoints();
+
+    if (!allPoints.length) {
+        alert('No points to export.');
+        return;
+    }
+
+    let kml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    kml += `<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
+
+    allPoints.forEach(point => {
+        kml += `<Placemark>\n`;
+        kml += `<name>${escapeXml(point.pointID)}</name>\n`;
+        kml += `<Point><coordinates>${point.lng},${point.lat},0</coordinates></Point>\n`;
+        kml += `</Placemark>\n`;
+    });
+
+    kml += `</Document>\n</kml>`;
+
+    let fileName = 'points.kml';
+    const sourceFileName = lastGkImportFileName || lastSwerefImportFileName || lastWgsImportFileName;
+    if (sourceFileName && sourceFileName.toLowerCase().endsWith('.txt')) {
+        fileName = sourceFileName.replace(/\.txt$/i, '.kml');
+    } else {
+        fileName = `${getDateStamp()}.kml`;
+    }
+
+    appendDownloadLink(fileName, kml, 'application/vnd.google-earth.kml+xml');
+}
+
+function setupEventListeners() {
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        tab.addEventListener('keydown', event => {
+            const tabs = Array.from(document.querySelectorAll('.tab'));
+            const currentIndex = tabs.indexOf(event.currentTarget);
+            let nextIndex = currentIndex;
+            if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
+            if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            if (event.key === 'Home') nextIndex = 0;
+            if (event.key === 'End') nextIndex = tabs.length - 1;
+            if (nextIndex !== currentIndex) {
+                event.preventDefault();
+                tabs[nextIndex].focus();
+                switchTab(tabs[nextIndex].dataset.tab);
             }
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File too large. Maximum size: 5MB');
-                event.target.value = '';
-                return;
-            }
-            rememberFileName(file.name);
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const normalized = normalizeImportedCoordinateText(e.target.result, mode);
-                document.getElementById(textareaId).value = normalized.text;
-                showImportStatus(statusId, normalized.summary);
-            };
-            reader.onerror = function() {
-                alert('Error reading file');
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
+        });
+    });
 
-        function handleFileImport(event) {
-            importCoordinateTextFile(
-                event,
-                'gk',
-                'coordinates',
-                'gkStatus',
-                fileName => { lastGkImportFileName = fileName; }
-            );
-        }
+    document.getElementById('convertGkButton').addEventListener('click', convertCoordinates);
+    document.getElementById('loadGkSampleButton').addEventListener('click', () => {
+        loadCoordinateSample('coordinates', '1029 3568189.267 5657692.868 321.609', clearInput);
+    });
+    document.getElementById('clearGkButton').addEventListener('click', clearInput);
+    document.getElementById('importGkButton').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('saveGkTxtButton').addEventListener('click', saveToTxt);
+    document.getElementById('copyGkButton').addEventListener('click', () => copyResults('resultsTable', 'gkStatus'));
+    document.getElementById('fileInput').addEventListener('change', handleFileImport);
 
-        function exportKML() {
-            // KML uses all WGS84 coordinates currently present in the result tables.
-            const allPoints = collectMapPoints();
-            
-            if (!allPoints.length) {
-                alert('No points to export.');
-                return;
-            }
-            
-            let kml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-            kml += `<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n`;
-            
-            allPoints.forEach(point => {
-                kml += `<Placemark>\n`;
-                kml += `<name>${escapeXml(point.pointID)}</name>\n`;
-                kml += `<Point><coordinates>${point.lng},${point.lat},0</coordinates></Point>\n`;
-                kml += `</Placemark>\n`;
-            });
-            
-            kml += `</Document>\n</kml>`;
-            
-            let fileName = 'points.kml';
-            const sourceFileName = lastGkImportFileName || lastSwerefImportFileName || lastWgsImportFileName;
-            if (sourceFileName && sourceFileName.toLowerCase().endsWith('.txt')) {
-                fileName = sourceFileName.replace(/\.txt$/i, '.kml');
-            } else {
-                fileName = `${getDateStamp()}.kml`;
-            }
-            
-            appendDownloadLink(fileName, kml, 'application/vnd.google-earth.kml+xml');
-        }
+    document.getElementById('convertWgsButton').addEventListener('click', convertWGS84ToTarget);
+    document.getElementById('loadWgsSampleButton').addEventListener('click', () => {
+        loadCoordinateSample(
+            'wgsCoordinates',
+            '1029 51.05031687 9.971396507\n1030 55.12345678 18.98765432',
+            clearWGSInput
+        );
+    });
+    document.getElementById('clearWgsButton').addEventListener('click', clearWGSInput);
+    document.getElementById('importWgsButton').addEventListener('click', () => document.getElementById('wgsFileInput').click());
+    document.getElementById('saveWgsTxtButton').addEventListener('click', saveWGS84ToTxt);
+    document.getElementById('copyWgsButton').addEventListener('click', () => copyResults('wgsResultsTable', 'wgsStatus'));
+    document.getElementById('wgsFileInput').addEventListener('change', handleWGSFileImport);
 
-        function setupEventListeners() {
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-                tab.addEventListener('keydown', event => {
-                    const tabs = Array.from(document.querySelectorAll('.tab'));
-                    const currentIndex = tabs.indexOf(event.currentTarget);
-                    let nextIndex = currentIndex;
-                    if (event.key === 'ArrowRight') nextIndex = (currentIndex + 1) % tabs.length;
-                    if (event.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                    if (event.key === 'Home') nextIndex = 0;
-                    if (event.key === 'End') nextIndex = tabs.length - 1;
-                    if (nextIndex !== currentIndex) {
-                        event.preventDefault();
-                        tabs[nextIndex].focus();
-                        switchTab(tabs[nextIndex].dataset.tab);
-                    }
-                });
-            });
+    document.getElementById('convertSwerefButton').addEventListener('click', convertSwerefToWGS84);
+    document.getElementById('loadSwerefSampleButton').addEventListener('click', () => {
+        loadCoordinateSample('swerefCoordinates', '1029 153905.093 6579354.449 0.000', clearSwerefInput);
+    });
+    document.getElementById('clearSwerefButton').addEventListener('click', clearSwerefInput);
+    document.getElementById('importSwerefButton').addEventListener('click', () => document.getElementById('swerefFileInput').click());
+    document.getElementById('saveSwerefTxtButton').addEventListener('click', saveSwerefToTxt);
+    document.getElementById('copySwerefButton').addEventListener('click', () => copyResults('swerefResultsTable', 'swerefStatus'));
+    document.getElementById('swerefFileInput').addEventListener('change', handleSwerefFileImport);
 
-            document.getElementById('convertGkButton').addEventListener('click', convertCoordinates);
-            document.getElementById('clearGkButton').addEventListener('click', clearInput);
-            document.getElementById('importGkButton').addEventListener('click', () => document.getElementById('fileInput').click());
-            document.getElementById('saveGkTxtButton').addEventListener('click', saveToTxt);
-            document.getElementById('copyGkButton').addEventListener('click', () => copyResults('resultsTable', 'gkStatus'));
-            document.getElementById('fileInput').addEventListener('change', handleFileImport);
+    document.getElementById('exportKmlButton').addEventListener('click', exportKML);
 
-            document.getElementById('convertWgsButton').addEventListener('click', convertWGS84ToTarget);
-            document.getElementById('clearWgsButton').addEventListener('click', clearWGSInput);
-            document.getElementById('importWgsButton').addEventListener('click', () => document.getElementById('wgsFileInput').click());
-            document.getElementById('saveWgsTxtButton').addEventListener('click', saveWGS84ToTxt);
-            document.getElementById('copyWgsButton').addEventListener('click', () => copyResults('wgsResultsTable', 'wgsStatus'));
-            document.getElementById('wgsFileInput').addEventListener('change', handleWGSFileImport);
+    Object.keys(resultViewConfig).forEach(updateResultView);
+}
 
-            document.getElementById('convertSwerefButton').addEventListener('click', convertSwerefToWGS84);
-            document.getElementById('clearSwerefButton').addEventListener('click', clearSwerefInput);
-            document.getElementById('importSwerefButton').addEventListener('click', () => document.getElementById('swerefFileInput').click());
-            document.getElementById('saveSwerefTxtButton').addEventListener('click', saveSwerefToTxt);
-            document.getElementById('copySwerefButton').addEventListener('click', () => copyResults('swerefResultsTable', 'swerefStatus'));
-            document.getElementById('swerefFileInput').addEventListener('change', handleSwerefFileImport);
-
-            document.getElementById('exportKmlButton').addEventListener('click', exportKML);
-        }
-
-        document.addEventListener('DOMContentLoaded', setupEventListeners);
+document.addEventListener('DOMContentLoaded', setupEventListeners);
     </script>
 </body>
 </html>
