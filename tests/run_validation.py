@@ -644,6 +644,10 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("map.updateSize()", app)
         self.assertIn("--primary-700", styles)
         self.assertIn("min-height: 44px", styles)
+        self.assertIn("[hidden]", styles)
+        self.assertIn("display: none !important", styles)
+        self.assertNotIn("margin-top: -52px", styles)
+        self.assertNotIn("margin-top: -48px", styles)
 
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")

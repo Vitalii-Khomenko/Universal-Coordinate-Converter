@@ -138,6 +138,10 @@ The product header contains:
 Use a dark technical surface with restrained geometric detail. Avoid large
 illustrations that reduce space for the actual tool.
 
+Primary navigation must begin below the product header. Do not pull navigation
+under the header with negative margins or allow header decoration to obscure
+interactive labels.
+
 ### Mode navigation
 
 Use a segmented tab group for three to six peer workflows.
@@ -202,6 +206,7 @@ for normal batch validation.
 ### Results
 
 - Show an explicit empty state before processing.
+- Hide the empty state completely as soon as result rows exist.
 - Show the number of result records.
 - Disable copy and download actions until results exist.
 - Keep units or coordinate systems in table headers.
@@ -311,4 +316,3 @@ standard.
 - [ ] Core processing works offline.
 - [ ] Map failure does not block conversion.
 - [ ] Documentation and supported file formats are current.
-
