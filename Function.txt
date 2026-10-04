@@ -13,7 +13,7 @@ the change.
 - Transformation implementation: `js/transformations.js`
 - Browser orchestration: `js/app.js`
 - Portable build: `dist/universal-coordinate-converter.generated.html`
-- Stable historical field release: `universal-coordinate-converter.html`
+- Field release (built together with the generated file): `universal-coordinate-converter.html`
 - Regression tests: `tests/run_validation.py`
 - Validation notes: `VALIDATION.md`
 

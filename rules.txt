@@ -51,10 +51,11 @@ Project Development and Publishing Guidelines for Coordinate Transformer
 ## 8. Project Structure
    ```
    index.html                              # Editable multi-file application
-   css/style.css                           # Responsive presentation
+   css/style.css                           # Converter-specific presentation
+   shared/                                 # Vendored GeoField front end (do not edit)
    js/transformations.js                   # Coordinate formulas
    js/app.js                               # UI, parsing, import/export, and maps
-   universal-coordinate-converter.html     # Stable standalone field release
+   universal-coordinate-converter.html     # Standalone field release (rebuilt with dist/)
    dist/universal-coordinate-converter.generated.html
                                               # Generated portable build
    scripts/build_singlefile_dist.py        # Single-file builder

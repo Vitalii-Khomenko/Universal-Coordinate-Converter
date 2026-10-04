@@ -1,3 +1,5 @@
+const DOWNLOAD_URL_REVOKE_DELAY_MS = 30000;
+
 function appendTextCell(row, value) {
     // Use textContent so imported point IDs cannot inject HTML into result tables.
     const cell = document.createElement('td');
@@ -27,10 +29,9 @@ function appendDownloadLink(fileName, content, mimeType) {
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
+    document.body.removeChild(a);
+    // Revoke late so slow mobile browsers can finish starting the download.
+    setTimeout(() => URL.revokeObjectURL(url), DOWNLOAD_URL_REVOKE_DELAY_MS);
 }
 
 function escapeXml(value) {
@@ -65,10 +66,19 @@ function isMapLibraryReady(showAlert) {
 }
 
 const STRICT_DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/;
+// Heights may be negative (below sea level); coordinates may not.
+const STRICT_HEIGHT_PATTERN = /^-?\d+(?:\.\d+)?$/;
 
 function parseStrictDecimal(value) {
     const text = String(value).trim();
     if (!STRICT_DECIMAL_PATTERN.test(text)) return null;
+    const number = Number(text);
+    return isFinite(number) ? number : null;
+}
+
+function parseStrictHeight(value) {
+    const text = String(value).trim();
+    if (!STRICT_HEIGHT_PATTERN.test(text)) return null;
     const number = Number(text);
     return isFinite(number) ? number : null;
 }
@@ -94,9 +104,12 @@ const IMPORT_MODE_CONFIG = {
         requiresHeight: false,
         firstName: 'Latitude',
         secondName: 'Longitude',
+        // Practical area (Germany to Sweden). A wider range would mistake a
+        // numeric part of a point ID, such as "Station 12", for a latitude.
+        // Points outside it still import through the standard-layout fallback.
         isPlausiblePair: (first, second) =>
-            first >= 0 && first <= 90 &&
-            second >= 0 && second <= 180
+            first >= 45 && first <= 72 &&
+            second >= 4 && second <= 32
     }
 };
 
@@ -176,7 +189,7 @@ function parseCoordinateLine(line, mode, lineNumber) {
     if (config.requiresHeight) {
         if (
             tokens.length > consumedTokens &&
-            parseStrictDecimal(tokens[consumedTokens]) !== null
+            parseStrictHeight(tokens[consumedTokens]) !== null
         ) {
             heightText = tokens[consumedTokens];
             consumedTokens++;
@@ -193,7 +206,7 @@ function parseCoordinateLine(line, mode, lineNumber) {
         firstValue: parseStrictDecimal(firstText),
         secondValue: parseStrictDecimal(secondText),
         heightText,
-        heightValue: heightText === null ? null : parseStrictDecimal(heightText),
+        heightValue: heightText === null ? null : parseStrictHeight(heightText),
         defaultedHeight,
         multiPartPointID: coordinateIndex > 1,
         extraFieldCount: Math.max(0, tokens.length - consumedTokens)
@@ -387,10 +400,7 @@ function getTableAsTsv(tableId) {
     }).filter(Boolean).join('\n');
 }
 
-function copyTextToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text);
-    }
+function copyTextWithSelection(text) {
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.setAttribute('readonly', '');
@@ -400,6 +410,14 @@ function copyTextToClipboard(text) {
     const copied = document.execCommand('copy');
     document.body.removeChild(textarea);
     return copied ? Promise.resolve() : Promise.reject(new Error('Clipboard copy failed'));
+}
+
+function copyTextToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        // Fall back to selection copy when the async API is blocked, for example by permissions.
+        return navigator.clipboard.writeText(text).catch(() => copyTextWithSelection(text));
+    }
+    return copyTextWithSelection(text);
 }
 
 function copyResults(tableId, statusId) {
@@ -445,10 +463,6 @@ function createWgsTargetRow(pointID, lat, lng, easting, northing) {
     appendTextCell(row, northing);
     return row;
 }
-
-// SWEREF99 18 00 to WGS84 conversion functions - Built-in Mathematical Implementation
-
-// WGS84 to SWEREF99 18 00 conversion - Built-in Mathematical Implementation
 
 function convertSwerefToWGS84() {
     const input = document.getElementById('swerefCoordinates').value;
@@ -496,10 +510,7 @@ function convertSwerefToWGS84() {
     showConversionStatus('swerefStatus', convertedCount, errors, warnings);
     updateResultView('swerefResultsBody');
 
-    // Update map if available
-    if (map && typeof updateMap === 'function') {
-        updateSwerefMap();
-    }
+    updateMap();
 }
 
 function clearSwerefInput() {
@@ -535,22 +546,17 @@ function saveSwerefToTxt() {
         }
     });
 
-    let fileName = 'sweref99_to_wgs84_results.txt';
-    if (lastSwerefImportFileName && lastSwerefImportFileName.toLowerCase().endsWith('.txt')) {
-        fileName = lastSwerefImportFileName.replace(/\.txt$/i, '_converted.txt');
-    } else {
-        fileName = `sweref99_results_${getDateStamp()}.txt`;
-    }
+    const fileName = lastSwerefImportFileName && lastSwerefImportFileName.toLowerCase().endsWith('.txt')
+        ? lastSwerefImportFileName.replace(/\.txt$/i, '_converted.txt')
+        : `sweref99_results_${getDateStamp()}.txt`;
 
     appendDownloadLink(fileName, content, 'text/plain');
 }
 
-function updateSwerefMap() {
-    updateMap();
-}
-
 function convertWGS84ToTarget() {
     const targetSystem = document.getElementById('targetSystem').value;
+    // Exports must describe the system used for the displayed rows, not the current dropdown value.
+    lastWgsTargetSystem = targetSystem;
     const input = document.getElementById('wgsCoordinates').value;
     const lines = input.trim().split('\n');
     const resultsBody = document.getElementById('wgsResultsBody');
@@ -615,15 +621,7 @@ function convertWGS84ToTarget() {
     });
     showConversionStatus('wgsStatus', convertedCount, errors, warnings);
     updateResultView('wgsResultsBody');
-    if (map && typeof updateMap === 'function') {
-        updateMap();
-    }
-}
-
-function convertWGS84ToGK() {
-    // Legacy function - redirect to new function
-    document.getElementById('targetSystem').value = 'gk';
-    convertWGS84ToTarget();
+    updateMap();
 }
 
 let map, vectorSource, vectorLayer;
@@ -711,8 +709,12 @@ function updateMap() {
             vectorSource.addFeature(textFeature);
         });
 
-        map.getView().setCenter(ol.proj.fromLonLat([allPoints[0].lng, allPoints[0].lat]));
-        map.getView().setZoom(13);
+        // Fit every point, including sets spread across countries; a single point gets a street-level zoom.
+        map.getView().fit(vectorSource.getExtent(), {
+            padding: [48, 48, 48, 48],
+            maxZoom: 16,
+            duration: 0
+        });
     } else {
         map.getView().setCenter(ol.proj.fromLonLat([10.0, 51.0]));
         map.getView().setZoom(6);
@@ -759,12 +761,9 @@ function saveToTxt() {
         }
     });
 
-    let fileName = 'gk_to_wgs84_results.txt';
-    if (lastGkImportFileName && lastGkImportFileName.toLowerCase().endsWith('.txt')) {
-        fileName = lastGkImportFileName.replace(/\.txt$/i, '_converted.txt');
-    } else {
-        fileName = `gk_results_${getDateStamp()}.txt`;
-    }
+    const fileName = lastGkImportFileName && lastGkImportFileName.toLowerCase().endsWith('.txt')
+        ? lastGkImportFileName.replace(/\.txt$/i, '_converted.txt')
+        : `gk_results_${getDateStamp()}.txt`;
 
     appendDownloadLink(fileName, content, 'text/plain');
 }
@@ -776,14 +775,10 @@ function saveWGS84ToTxt() {
         return;
     }
 
-    const targetSystem = document.getElementById('targetSystem').value;
-    let content;
-
-    if (targetSystem === 'sweref99') {
-        content = 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_SWEREF99\tNorthing_SWEREF99\n';
-    } else {
-        content = 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_GK\tNorthing_GK\n';
-    }
+    const isSweref = lastWgsTargetSystem === 'sweref99';
+    let content = isSweref
+        ? 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_SWEREF99\tNorthing_SWEREF99\n'
+        : 'PointID\tLatitude_WGS84\tLongitude_WGS84\tEasting_GK\tNorthing_GK\n';
 
     rows.forEach(row => {
         const cells = row.querySelectorAll('td');
@@ -792,20 +787,10 @@ function saveWGS84ToTxt() {
         }
     });
 
-    let fileName;
-    if (targetSystem === 'sweref99') {
-        fileName = 'wgs84_to_sweref99_results.txt';
-    } else {
-        fileName = 'wgs84_to_gk_results.txt';
-    }
-
-    if (lastWgsImportFileName && lastWgsImportFileName.toLowerCase().endsWith('.txt')) {
-        const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-        fileName = lastWgsImportFileName.replace(/\.txt$/i, `${systemSuffix}_converted.txt`);
-    } else {
-        const systemSuffix = targetSystem === 'sweref99' ? '_sweref99' : '_gk';
-        fileName = `wgs84${systemSuffix}_results_${getDateStamp()}.txt`;
-    }
+    const systemSuffix = isSweref ? '_sweref99' : '_gk';
+    const fileName = lastWgsImportFileName && lastWgsImportFileName.toLowerCase().endsWith('.txt')
+        ? lastWgsImportFileName.replace(/\.txt$/i, `${systemSuffix}_converted.txt`)
+        : `wgs84${systemSuffix}_results_${getDateStamp()}.txt`;
 
     appendDownloadLink(fileName, content, 'text/plain');
 }
@@ -843,9 +828,7 @@ function convertCoordinates() {
     });
     showConversionStatus('gkStatus', convertedCount, errors, warnings);
     updateResultView('resultsBody');
-    if (map && typeof updateMap === 'function') {
-        updateMap();
-    }
+    updateMap();
 }
 
 function getGoogleMapsLink(lat, lon) {
@@ -883,6 +866,7 @@ function switchTab(tabId) {
 let lastGkImportFileName = null;
 let lastWgsImportFileName = null;
 let lastSwerefImportFileName = null;
+let lastWgsTargetSystem = 'gk';
 
 function importCoordinateTextFile(event, mode, textareaId, statusId, rememberFileName) {
     const file = event.target.files[0];

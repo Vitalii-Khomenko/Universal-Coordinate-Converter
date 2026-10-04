@@ -4,7 +4,8 @@
 
 Coordinate input and imported TXT files are processed in the browser. The app
 does not intentionally upload coordinate data, use analytics, set cookies, or
-store project data in a remote service.
+store project data in a remote service. The shared front end keeps one value in
+browser storage, the light or dark theme choice; coordinate data is never stored.
 
 Downloaded TXT and KML files are created locally with browser object URLs.
 Users should still treat exported coordinate files according to their own
@@ -23,8 +24,9 @@ converter remains usable.
 
 The supported workflows are:
 
-- Open `index.html` with its adjacent `css/` and `js/` directories.
-- Open `dist/universal-coordinate-converter.generated.html` as a portable file.
+- Open `index.html` with its adjacent `css/`, `js/`, and `shared/` directories.
+- Open `universal-coordinate-converter.html` (the field release) or
+  `dist/universal-coordinate-converter.generated.html` as a portable file.
 - Serve either version from a trusted static host.
 
 When deploying through HTTP, configure equivalent security headers at the
@@ -37,8 +39,8 @@ The source and generated application restrict scripts and styles to local
 assets and the jsDelivr origin used by the versioned OpenLayers URL. Image and
 network access is limited to the OpenStreetMap tile origin. Plugins, embedded
 objects, base URL changes, and form submissions are blocked. The generated
-build permits inline local source because its CSS and JavaScript are
-intentionally bundled into one file.
+build permits inline local source and embedded fonts (`font-src data:`) because
+its CSS, JavaScript, and fonts are intentionally bundled into one file.
 
 ## Input and Export Safety
 
@@ -46,7 +48,7 @@ intentionally bundled into one file.
 - Numeric fields use strict decimal validation.
 - Imported point IDs are rendered with `textContent`.
 - KML point names are XML-escaped.
-- Generated object URLs are revoked after download.
+- Generated object URLs are revoked 30 seconds after the download starts.
 
 ## Reporting Issues
 

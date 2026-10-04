@@ -1,6 +1,10 @@
 # Universal Coordinate Converter
 
-Web-based tool for converting coordinates between supported systems, with map visualization, TXT import/export, and KML export.
+A local, browser-based coordinate converter for Gauß-Krüger (Bessel/Potsdam), SWEREF99 18 00, and WGS84, with TXT import/export, KML export, and an optional map. It is a page of the GeoField section of Airwitech and uses the GeoField design.
+
+## Why it exists
+
+Surveying and monitoring work in Germany and Sweden produces coordinate lists in national projected systems, while maps, GNSS receivers, and exchange files use WGS84. Converting them by hand, in a spreadsheet, or with a desktop package is slow in the field and awkward on a phone. This tool converts whole lists in the browser, keeps the data on the device, works offline for the core calculations, and keeps the transformation behavior the project owner has checked against real field locations. See `Mission.md` for the full purpose and scope.
 
 ## Supported Coordinate Systems
 
@@ -16,14 +20,14 @@ Web-based tool for converting coordinates between supported systems, with map vi
 - TXT file import/export for batch processing.
 - Copy result tables to the clipboard.
 - KML export for Google Earth.
-- Map visualization (OpenLayers, OpenStreetMap tiles; requires internet).
+- Map visualization (OpenLayers, OpenStreetMap tiles; requires internet) that fits all converted points in view.
 - Google Maps links for each point.
 - Dynamic table headers and export filenames.
 - Inline input validation feedback with compact conversion, error, and warning counts.
-- GeoMonitoring Interface Standard with consistent laptop and smartphone workflows.
-- Explicit source/result stages, guided samples, result counts, and useful empty states.
-- Clear primary, secondary, and quiet action hierarchy with 44px touch targets.
-- Strict numeric validation rejects letters, commas, and mixed text in coordinate fields.
+- GeoField interface (the Airwitech design): shared header and footer, light and dark themes, pixel glyphs, and consistent laptop and smartphone workflows.
+- Explicit source/result panels, guided samples, result counts, and useful empty states.
+- Clear primary, secondary, and quiet action hierarchy with touch-friendly controls.
+- Strict numeric validation rejects letters, commas, and mixed text in coordinate fields. Heights may be negative.
 - Tolerant TXT cleanup recognizes multi-part point IDs, removes non-data lines and trailing fields, and supplies `0.000` when projected-coordinate height is missing.
 - KML export includes WGS84 coordinates from all result tables, including WGS84-to-target input rows.
 - Imported point IDs are written safely to tables and KML output.
@@ -82,7 +86,9 @@ During TXT import, comment lines, blank lines, and unrecognized headers are remo
 
 Height is optional for GK and SWEREF99 input. A missing height is normalized to `0.000`; height is retained for output but does not affect the horizontal transformation. The import status reports recognized records, removed non-data lines, defaulted heights, preserved multi-part IDs, and removed trailing fields.
 
-Coordinate and height fields must contain digits with one optional decimal point, for example `3568189.267`. Decimal commas and mixed text inside numeric fields are not accepted.
+Coordinate fields must contain digits with one optional decimal point, for example `3568189.267`. Heights follow the same rule with an optional leading minus, for example `-5.200`. Decimal commas and mixed text inside numeric fields are not accepted.
+
+For WGS84 rows the importer looks for a latitude and longitude pair in the practical area (latitude 45 to 72, longitude 4 to 32), so numeric parts of a point ID such as `Station 12 51.05031687 9.971396507` are preserved. Rows outside that area still import when they use the standard `PointID Latitude Longitude` layout.
 
 ## System Requirements
 
@@ -105,11 +111,12 @@ The project owner has manually checked the current converter output against actu
 
 ```text
 index.html                                  — editable application structure
-css/style.css                               — responsive styles
-DESIGN_SYSTEM.md                            — GeoMonitoring interface rules and design tokens
+css/style.css                               — converter-specific styles on top of the GeoField design
+shared/                                     — vendored GeoField front end (site.css, app.css, site.js, fonts, favicon)
+DESIGN_SYSTEM.md                            — GeoField interface rules and integration notes
 js/transformations.js                       — coordinate formulas and math helpers
 js/app.js                                   — parsing, UI, import/export, and maps
-universal-coordinate-converter.html         — stable standalone field release
+universal-coordinate-converter.html         — standalone field release (rebuilt with dist/)
 dist/universal-coordinate-converter.generated.html
                                             — generated portable application
 scripts/build_singlefile_dist.py            — portable-build script
@@ -118,14 +125,16 @@ SECURITY.md                                 — privacy, security, and deploymen
 Function.txt                                — transformation notes
 VALIDATION.md                               — regression baselines and validation policy
 tests/run_validation.py                     — regression and structure checks
+tests/js_behavior_checks.js                 — checks that run the shipped JavaScript in Node
 AGENTS.md                                   — project instructions for coding agents
 rules.txt                                   — development and publishing rules
 LICENSE                                     — MIT license
 ```
 
 The split source uses plain browser scripts and can be opened directly without
-Node, a package manager, or a local server. The builder writes only to `dist/`
-and does not overwrite the stable root-level field release.
+Node, a package manager, or a local server. The builder inlines the CSS, scripts,
+fonts, and favicon, and writes both `dist/universal-coordinate-converter.generated.html`
+and the root-level field release `universal-coordinate-converter.html`.
 
 ## Performance
 
@@ -136,7 +145,7 @@ and does not overwrite the stable root-level field release.
 ## Technical Notes
 
 - UI: Compact workflow tabs, two-stage source/result panels, and a dropdown for the WGS84 target
-- Design: Shared GeoMonitoring tokens and component rules are documented in `DESIGN_SYSTEM.md`
+- Design: The GeoField interface and its integration notes are documented in `DESIGN_SYSTEM.md`
 - Empty result states explain the next action; copy and download controls activate only when results exist
 - Table headers and export filenames adjust to selected system
 - Each conversion workflow keeps its own imported TXT filename for exports
@@ -172,8 +181,9 @@ python tests/run_validation.py
 The suite checks current coordinate-regression baselines and project invariants without external dependencies. See `VALIDATION.md` for the current baselines and the limitation that official geodetic control points are still recommended before changing transformation formulas.
 
 The suite also runs the portable builder and verifies that the generated file
-contains the local CSS and JavaScript while leaving the stable standalone file
-unchanged.
+and the field release contain the local CSS, JavaScript, fonts, and favicon.
+When Node.js is installed it additionally runs `tests/js_behavior_checks.js`,
+which executes the shipped `js/transformations.js` and `js/app.js`.
 
 Build the portable single-file application manually with:
 
@@ -181,8 +191,9 @@ Build the portable single-file application manually with:
 python scripts/build_singlefile_dist.py
 ```
 
-The output is written to
-`dist/universal-coordinate-converter.generated.html`.
+The outputs are
+`dist/universal-coordinate-converter.generated.html` and
+`universal-coordinate-converter.html`.
 
 ## License
 

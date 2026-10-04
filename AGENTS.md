@@ -23,6 +23,7 @@ Do not add Russian or any other non-English text to project files.
 - Preserve offline core coordinate calculations. External dependencies are acceptable only for non-essential features such as map visualization.
 - Use built-in mathematical formulas for coordinate transformations instead of external calculation libraries unless a task explicitly changes that rule.
 - Keep controls touch-friendly, readable, and comfortable on both smartphone and laptop browsers.
+- Follow the GeoField interface (the Airwitech design, see `DESIGN_SYSTEM.md`). The page uses the same header and footer as every Airwitech page (`geofield` wordmark tag, GeoField marked `aria-current="page"`, theme toggle) and the vendored front end in `shared/`. Do not edit `shared/`; copy updated files from the Field Checker repository and put converter-specific styles in `css/style.css`.
 - Preserve TXT import/export workflows and document any supported file formats.
 - Update project documentation after each functional change.
 - After each functional update, run validation tests, commit the changes, and push the updated project to GitHub.

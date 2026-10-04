@@ -1,15 +1,17 @@
 """Regression and project-invariant tests for Universal Coordinate Converter.
 
-These tests use Python mirrors of the active in-browser formulas so the suite can
-run in this repository without Node, a browser driver, or network access. They
-are regression tests for the current implementation, not a replacement for
-authoritative geodetic control-point validation.
+These tests use Python mirrors of the active in-browser formulas so the core suite can
+run without Node, a browser driver, or network access. When Node.js is installed, the
+suite also runs the shipped JavaScript (tests/js_behavior_checks.js). They are
+regression tests for the current implementation, not a replacement for authoritative
+geodetic control-point validation.
 """
 
 from __future__ import annotations
 
 import math
 import re
+import shutil
 import subprocess
 import sys
 import unittest
@@ -32,8 +34,14 @@ VALIDATION_PATH = ROOT / "VALIDATION.md"
 SECURITY_PATH = ROOT / "SECURITY.md"
 BUILD_SCRIPT_PATH = ROOT / "scripts" / "build_singlefile_dist.py"
 GENERATED_HTML_PATH = ROOT / "dist" / "universal-coordinate-converter.generated.html"
+SHARED_DIR = ROOT / "shared"
+SHARED_SITE_CSS_PATH = SHARED_DIR / "site.css"
+SHARED_APP_CSS_PATH = SHARED_DIR / "app.css"
+SHARED_SITE_JS_PATH = SHARED_DIR / "site.js"
+JS_CHECKS_PATH = ROOT / "tests" / "js_behavior_checks.js"
 CYRILLIC_RE = re.compile("[\\u0400-\\u04FF]")
 STRICT_DECIMAL_RE = re.compile(r"^\d+(?:\.\d+)?$")
+STRICT_HEIGHT_RE = re.compile(r"^-?\d+(?:\.\d+)?$")
 
 
 def normalize_projected_import(text: str, mode: str = "gk") -> tuple[str, dict[str, int]]:
@@ -76,7 +84,7 @@ def normalize_projected_import(text: str, mode: str = "gk") -> tuple[str, dict[s
 
         point_id = " ".join(tokens[:coordinate_index])
         height_index = coordinate_index + 2
-        if height_index < len(tokens) and STRICT_DECIMAL_RE.fullmatch(tokens[height_index]):
+        if height_index < len(tokens) and STRICT_HEIGHT_RE.fullmatch(tokens[height_index]):
             height = tokens[height_index]
             consumed = height_index + 1
         else:
@@ -483,6 +491,10 @@ class ProjectInvariantTests(unittest.TestCase):
             VALIDATION_PATH,
             SECURITY_PATH,
             BUILD_SCRIPT_PATH,
+            SHARED_SITE_CSS_PATH,
+            SHARED_APP_CSS_PATH,
+            SHARED_SITE_JS_PATH,
+            JS_CHECKS_PATH,
         ]
         for path in required_paths:
             self.assertTrue(path.exists(), f"Missing required file: {path.name}")
@@ -529,8 +541,7 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("function setupEventListeners", app)
         self.assertIn("DOMContentLoaded", app)
 
-    def test_builder_creates_portable_generated_html(self) -> None:
-        stable_before = HTML_PATH.read_bytes()
+    def test_builder_creates_portable_generated_html_and_field_release(self) -> None:
         result = subprocess.run(
             [sys.executable, str(BUILD_SCRIPT_PATH)],
             cwd=ROOT,
@@ -539,16 +550,34 @@ class ProjectInvariantTests(unittest.TestCase):
             text=True,
         )
         generated = GENERATED_HTML_PATH.read_text(encoding="utf-8")
+        release = HTML_PATH.read_text(encoding="utf-8")
         self.assertIn("Wrote dist", result.stdout)
-        self.assertIn("<style>", generated)
-        self.assertIn("function gk2geo", generated)
-        self.assertIn("function setupEventListeners", generated)
-        self.assertNotIn('href="css/style.css"', generated)
-        self.assertNotIn('src="js/transformations.js"', generated)
-        self.assertNotIn('src="js/app.js"', generated)
-        self.assertIn("script-src 'self' 'unsafe-inline'", generated)
-        self.assertIn("connect-src https://tile.openstreetmap.org", generated)
-        self.assertEqual(stable_before, HTML_PATH.read_bytes())
+        for built in (generated, release):
+            self.assertIn("<style>", built)
+            self.assertIn("function gk2geo", built)
+            self.assertIn("function setupEventListeners", built)
+            for reference in [
+                'href="shared/site.css"',
+                'href="shared/app.css"',
+                'href="css/style.css"',
+                'href="shared/favicon.svg"',
+                'src="shared/site.js"',
+                'src="js/transformations.js"',
+                'src="js/app.js"',
+            ]:
+                self.assertNotIn(reference, built)
+            self.assertEqual(built.count("data:font/woff2;base64,"), 3)
+            self.assertNotIn('url("fonts/', built)
+            self.assertIn("data:image/svg+xml;base64,", built)
+            self.assertIn("script-src 'self' 'unsafe-inline'", built)
+            self.assertIn("font-src 'self' data:", built)
+            self.assertIn("connect-src https://tile.openstreetmap.org", built)
+            self.assertIn("https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js", built)
+        # The field release and the generated build differ only in their title.
+        self.assertEqual(
+            release,
+            generated.replace(" (generated single file)</title>", "</title>", 1),
+        )
 
     def test_html_does_not_use_external_calculation_libraries(self) -> None:
         html = HTML_PATH.read_text(encoding="utf-8").lower()
@@ -599,7 +628,11 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("Use digits and one optional decimal point only.", html)
         self.assertIn("parseStrictDecimal(tokens[index])", html)
         self.assertIn("parseStrictDecimal(firstText)", html)
-        self.assertIn("parseStrictDecimal(heightText)", html)
+        self.assertIn("parseStrictHeight(heightText)", html)
+        self.assertIn("const STRICT_HEIGHT_PATTERN", html)
+        self.assertTrue(STRICT_HEIGHT_RE.fullmatch("-5.200"))
+        self.assertIsNone(STRICT_HEIGHT_RE.fullmatch("--5"))
+        self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("-5.200"))
         self.assertTrue(STRICT_DECIMAL_RE.fullmatch("3563449.97359"))
         self.assertTrue(STRICT_DECIMAL_RE.fullmatch("0.000"))
         self.assertIsNone(STRICT_DECIMAL_RE.fullmatch("35634d49.97359"))
@@ -627,14 +660,27 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn("function getTableAsTsv", html)
         self.assertIn("Swipe table horizontally", html)
 
-    def test_geomonitoring_design_standard_is_applied(self) -> None:
+    def test_geofield_design_is_applied(self) -> None:
         source_html = SOURCE_HTML_PATH.read_text(encoding="utf-8")
         styles = STYLE_PATH.read_text(encoding="utf-8")
         app = APP_PATH.read_text(encoding="utf-8")
         standard = DESIGN_SYSTEM_PATH.read_text(encoding="utf-8")
-        self.assertIn("GeoMonitoring Interface Standard", standard)
-        self.assertIn("--primary-700", standard)
-        self.assertIn("44×44", standard)
+        site_css = SHARED_SITE_CSS_PATH.read_text(encoding="utf-8")
+        app_css = SHARED_APP_CSS_PATH.read_text(encoding="utf-8")
+        site_js = SHARED_SITE_JS_PATH.read_text(encoding="utf-8")
+        self.assertIn("GeoField interface", standard)
+        self.assertIn("antenna", standard)
+        self.assertIn('<body class="tone-gnss" data-tone="2">', source_html)
+        self.assertIn('<span class="logo-tag">geofield</span>', source_html)
+        self.assertIn('<a href="https://geofield.airwitech.com/" aria-current="page">GeoField</a>', source_html)
+        self.assertIn('id="theme-toggle"', source_html)
+        self.assertIn('<footer class="site-footer">', source_html)
+        self.assertIn("airwitech geofield", source_html)
+        self.assertIn('data-glyphs="antenna,network,tripod"', source_html)
+        self.assertNotIn('data-glyphs="window', source_html)
+        self.assertIn('class="steps-row"', source_html)
+        self.assertIn('class="panel tone-violet"', source_html)
+        self.assertIn('class="panel-head"', source_html)
         self.assertIn('class="workspace-grid"', source_html)
         self.assertIn('id="gkEmptyState"', source_html)
         self.assertIn('id="loadGkSampleButton"', source_html)
@@ -642,12 +688,35 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertNotIn('placeholder="Example:\\n', source_html)
         self.assertIn("function updateResultView", app)
         self.assertIn("map.updateSize()", app)
-        self.assertIn("--primary-700", styles)
-        self.assertIn("min-height: 44px", styles)
+        for marker in ["--ink: #06070c", "--paper: #f4f0e9", "--cyan: #62e4ff", "--alert:", ':root[data-theme="light"]', "min-width: 320px", "overflow-x: hidden"]:
+            self.assertIn(marker, site_css)
+        for marker in [".panel::before", ".tabs", ".steps-row", ".table-wrap", "@media print"]:
+            self.assertIn(marker, app_css)
+        for glyph in ["antenna:", "tripod:", "network:"]:
+            self.assertIn(glyph, site_js)
         self.assertIn("[hidden]", styles)
         self.assertIn("display: none !important", styles)
-        self.assertNotIn("margin-top: -52px", styles)
-        self.assertNotIn("margin-top: -48px", styles)
+        self.assertNotIn("--primary-700", styles)
+
+    def test_shared_front_end_has_no_remote_references(self) -> None:
+        for path in [SHARED_SITE_CSS_PATH, SHARED_APP_CSS_PATH, SHARED_SITE_JS_PATH]:
+            source = path.read_text(encoding="utf-8")
+            self.assertNotRegex(source, r"https?://", path.name)
+            self.assertNotIn("fetch(", source)
+            self.assertNotIn("XMLHttpRequest", source)
+
+    def test_real_javascript_behavior_checks(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js is not installed; the Python regression mirrors still run.")
+        subprocess.run([node, str(JS_CHECKS_PATH)], cwd=ROOT, check=True, capture_output=True, text=True)
+
+    def test_javascript_syntax(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node.js is not installed.")
+        for script in [SHARED_SITE_JS_PATH, TRANSFORMATIONS_PATH, APP_PATH]:
+            subprocess.run([node, "--check", str(script)], cwd=ROOT, check=True, capture_output=True, text=True)
 
     def test_project_requires_push_after_updates(self) -> None:
         agents = AGENTS_PATH.read_text(encoding="utf-8")
