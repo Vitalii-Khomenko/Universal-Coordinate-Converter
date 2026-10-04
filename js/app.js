@@ -624,7 +624,60 @@ function convertWGS84ToTarget() {
     updateMap();
 }
 
-let map, vectorSource, vectorLayer;
+let map, vectorSource, vectorLayer, tileLayer;
+
+// openstreetmap.org tiles reject pages that send no Referer header, which includes
+// pages opened from disk (file://), and CARTO returns watermarked tiles without one.
+// Esri tiles work for such pages, so they come first and keep the standalone field
+// release usable. OpenStreetMap is the fallback for pages served over HTTP.
+const MAP_TILE_SOURCES = [
+    {
+        name: 'Esri World Street Map',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        attributions: 'Tiles &copy; Esri'
+    },
+    {
+        name: 'OpenStreetMap',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attributions: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+    }
+];
+const MAP_TILE_ERROR_LIMIT = 4;
+let mapTileSourceIndex = 0;
+let mapTileErrorCount = 0;
+
+function createMapTileSource() {
+    const config = MAP_TILE_SOURCES[mapTileSourceIndex];
+    const source = new ol.source.XYZ({
+        url: config.url,
+        attributions: config.attributions,
+        maxZoom: 19,
+        crossOrigin: 'anonymous'
+    });
+    source.on('tileloaderror', handleMapTileError);
+    source.on('tileloadend', () => {
+        mapTileErrorCount = 0;
+        setMapNoticeVisible(false);
+    });
+    return source;
+}
+
+function setMapNoticeVisible(visible) {
+    const notice = document.getElementById('mapNotice');
+    if (notice) notice.hidden = !visible;
+}
+
+function handleMapTileError() {
+    mapTileErrorCount++;
+    if (mapTileErrorCount < MAP_TILE_ERROR_LIMIT) return;
+    mapTileErrorCount = 0;
+    if (mapTileSourceIndex < MAP_TILE_SOURCES.length - 1) {
+        mapTileSourceIndex++;
+        tileLayer.setSource(createMapTileSource());
+        return;
+    }
+    setMapNoticeVisible(true);
+}
 
 function initMap(showAlert = false) {
     if (map) return true;
@@ -633,10 +686,11 @@ function initMap(showAlert = false) {
     vectorLayer = new ol.layer.Vector({
         source: vectorSource
     });
+    tileLayer = new ol.layer.Tile({ source: createMapTileSource() });
     map = new ol.Map({
         target: 'mapContainer',
         layers: [
-            new ol.layer.Tile({ source: new ol.source.OSM() }),
+            tileLayer,
             vectorLayer
         ],
         view: new ol.View({

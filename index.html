@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#06070c">
     <meta name="description" content="GeoField Universal Coordinate Converter: convert Gauß-Krüger, SWEREF99 18 00, and WGS84 coordinates locally in the browser.">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src https://tile.openstreetmap.org; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://server.arcgisonline.com https://tile.openstreetmap.org; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Coordinate converter · GeoField · airwitech</title>
     <link rel="icon" href="shared/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol.css">
@@ -254,9 +254,10 @@
       <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map" hidden>
         <section class="panel tone-cyan" aria-label="Coordinate map">
           <div class="panel-head">
-            <span class="no">04</span><h2>Converted point map</h2><p>Review all successfully converted points · OpenStreetMap</p>
+            <span class="no">04</span><h2>Converted point map</h2><p>Review all successfully converted points · Esri / OpenStreetMap tiles</p>
             <button type="button" id="exportKmlButton" class="button compact">Export KML</button>
           </div>
+          <div id="mapNotice" class="status-message warning" role="status" hidden>Map tiles could not be loaded. Check your internet connection and reload the page. Conversion results and KML export are not affected.</div>
           <div id="mapContainer"></div>
         </section>
       </div>
@@ -277,7 +278,7 @@
       <li><a href="https://profile.hackthebox.com/profile/019c5de1-3684-718b-83fe-028319a5a7d0" rel="me noopener noreferrer">HTB profile</a></li>
       <li><a href="https://www.shackspace.de/" rel="noopener noreferrer">shackspace</a></li>
     </ul>
-    <p class="footer-note footer-legal">&copy; 2026 Airwitech. Coordinates are converted in this browser tab and never uploaded. Map data &copy; OpenStreetMap contributors, shown only in the optional map tab.</p>
+    <p class="footer-note footer-legal">&copy; 2026 Airwitech. Coordinates are converted in this browser tab and never uploaded. Map tiles &copy; Esri, with OpenStreetMap contributors as a fallback source, shown only in the optional map tab.</p>
   </footer>
 
   <script src="shared/site.js"></script>

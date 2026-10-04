@@ -20,7 +20,7 @@ Surveying and monitoring work in Germany and Sweden produces coordinate lists in
 - TXT file import/export for batch processing.
 - Copy result tables to the clipboard.
 - KML export for Google Earth.
-- Map visualization (OpenLayers, OpenStreetMap tiles; requires internet) that fits all converted points in view.
+- Map visualization (OpenLayers with Esri World Street Map tiles and an OpenStreetMap fallback; requires internet) that fits all converted points in view. It also works when the file is opened from disk, which OpenStreetMap tiles alone do not allow.
 - Google Maps links for each point.
 - Dynamic table headers and export filenames.
 - Inline input validation feedback with compact conversion, error, and warning counts.

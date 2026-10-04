@@ -526,7 +526,9 @@ class ProjectInvariantTests(unittest.TestCase):
         self.assertIn('href="css/style.css"', source_html)
         self.assertIn('src="js/transformations.js"', source_html)
         self.assertIn('src="js/app.js"', source_html)
+        self.assertIn("https://server.arcgisonline.com", source_html)
         self.assertIn("https://tile.openstreetmap.org", source_html)
+        self.assertNotIn("cartocdn", source_html)
         self.assertNotIn("<style>", source_html)
         self.assertNotIn("function gk2geo", source_html)
         for function_name in [
@@ -571,7 +573,10 @@ class ProjectInvariantTests(unittest.TestCase):
             self.assertIn("data:image/svg+xml;base64,", built)
             self.assertIn("script-src 'self' 'unsafe-inline'", built)
             self.assertIn("font-src 'self' data:", built)
-            self.assertIn("connect-src https://tile.openstreetmap.org", built)
+            self.assertNotIn("cartocdn", built)
+            self.assertIn("https://server.arcgisonline.com", built)
+            self.assertIn("https://tile.openstreetmap.org", built)
+            self.assertIn("connect-src 'none'", built)
             self.assertIn("https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js", built)
         # The field release and the generated build differ only in their title.
         self.assertEqual(

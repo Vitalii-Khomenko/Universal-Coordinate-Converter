@@ -28,9 +28,10 @@ GENERATED_TITLE = "<title>Coordinate converter · GeoField · airwitech (generat
 INLINE_CSP = (
     "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-    "img-src 'self' data: blob: https://tile.openstreetmap.org; "
+    "img-src 'self' data: blob: https://server.arcgisonline.com "
+    "https://tile.openstreetmap.org; "
     "font-src 'self' data:; "
-    "connect-src https://tile.openstreetmap.org; object-src 'none'; "
+    "connect-src 'none'; object-src 'none'; "
     "base-uri 'none'; form-action 'none'"
 )
 FAVICON_LINK = '<link rel="icon" href="shared/favicon.svg" type="image/svg+xml">'

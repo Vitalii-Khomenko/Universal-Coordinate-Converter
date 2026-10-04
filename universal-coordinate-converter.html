@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#06070c">
     <meta name="description" content="GeoField Universal Coordinate Converter: convert Gauß-Krüger, SWEREF99 18 00, and WGS84 coordinates locally in the browser.">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://tile.openstreetmap.org; font-src 'self' data:; connect-src https://tile.openstreetmap.org; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://server.arcgisonline.com https://tile.openstreetmap.org; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>Coordinate converter · GeoField · airwitech</title>
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+CiAgPHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjIwIiByeD0iNCIgZmlsbD0iIzA2MDcwYyIvPgogIDxyZWN0IHg9IjIiIHk9IjEzIiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmZiOTVmIi8+CiAgPHJlY3QgeD0iOCIgeT0iOSIgd2lkdGg9IjQiIGhlaWdodD0iNCIgZmlsbD0iI2ZmYjk1ZiIgb3BhY2l0eT0iLjciLz4KICA8cmVjdCB4PSIxMyIgeT0iNSIgd2lkdGg9IjMiIGhlaWdodD0iMyIgZmlsbD0iI2ZmYjk1ZiIgb3BhY2l0eT0iLjQ1Ii8+Cjwvc3ZnPgo=" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.4.0/ol.css">
@@ -1582,9 +1582,10 @@ td {
       <div id="map" class="tab-content" role="tabpanel" aria-labelledby="tab-map" hidden>
         <section class="panel tone-cyan" aria-label="Coordinate map">
           <div class="panel-head">
-            <span class="no">04</span><h2>Converted point map</h2><p>Review all successfully converted points · OpenStreetMap</p>
+            <span class="no">04</span><h2>Converted point map</h2><p>Review all successfully converted points · Esri / OpenStreetMap tiles</p>
             <button type="button" id="exportKmlButton" class="button compact">Export KML</button>
           </div>
+          <div id="mapNotice" class="status-message warning" role="status" hidden>Map tiles could not be loaded. Check your internet connection and reload the page. Conversion results and KML export are not affected.</div>
           <div id="mapContainer"></div>
         </section>
       </div>
@@ -1605,7 +1606,7 @@ td {
       <li><a href="https://profile.hackthebox.com/profile/019c5de1-3684-718b-83fe-028319a5a7d0" rel="me noopener noreferrer">HTB profile</a></li>
       <li><a href="https://www.shackspace.de/" rel="noopener noreferrer">shackspace</a></li>
     </ul>
-    <p class="footer-note footer-legal">&copy; 2026 Airwitech. Coordinates are converted in this browser tab and never uploaded. Map data &copy; OpenStreetMap contributors, shown only in the optional map tab.</p>
+    <p class="footer-note footer-legal">&copy; 2026 Airwitech. Coordinates are converted in this browser tab and never uploaded. Map tiles &copy; Esri, with OpenStreetMap contributors as a fallback source, shown only in the optional map tab.</p>
   </footer>
 
   <script>
@@ -3227,7 +3228,60 @@ function convertWGS84ToTarget() {
     updateMap();
 }
 
-let map, vectorSource, vectorLayer;
+let map, vectorSource, vectorLayer, tileLayer;
+
+// openstreetmap.org tiles reject pages that send no Referer header, which includes
+// pages opened from disk (file://), and CARTO returns watermarked tiles without one.
+// Esri tiles work for such pages, so they come first and keep the standalone field
+// release usable. OpenStreetMap is the fallback for pages served over HTTP.
+const MAP_TILE_SOURCES = [
+    {
+        name: 'Esri World Street Map',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        attributions: 'Tiles &copy; Esri'
+    },
+    {
+        name: 'OpenStreetMap',
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attributions: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+    }
+];
+const MAP_TILE_ERROR_LIMIT = 4;
+let mapTileSourceIndex = 0;
+let mapTileErrorCount = 0;
+
+function createMapTileSource() {
+    const config = MAP_TILE_SOURCES[mapTileSourceIndex];
+    const source = new ol.source.XYZ({
+        url: config.url,
+        attributions: config.attributions,
+        maxZoom: 19,
+        crossOrigin: 'anonymous'
+    });
+    source.on('tileloaderror', handleMapTileError);
+    source.on('tileloadend', () => {
+        mapTileErrorCount = 0;
+        setMapNoticeVisible(false);
+    });
+    return source;
+}
+
+function setMapNoticeVisible(visible) {
+    const notice = document.getElementById('mapNotice');
+    if (notice) notice.hidden = !visible;
+}
+
+function handleMapTileError() {
+    mapTileErrorCount++;
+    if (mapTileErrorCount < MAP_TILE_ERROR_LIMIT) return;
+    mapTileErrorCount = 0;
+    if (mapTileSourceIndex < MAP_TILE_SOURCES.length - 1) {
+        mapTileSourceIndex++;
+        tileLayer.setSource(createMapTileSource());
+        return;
+    }
+    setMapNoticeVisible(true);
+}
 
 function initMap(showAlert = false) {
     if (map) return true;
@@ -3236,10 +3290,11 @@ function initMap(showAlert = false) {
     vectorLayer = new ol.layer.Vector({
         source: vectorSource
     });
+    tileLayer = new ol.layer.Tile({ source: createMapTileSource() });
     map = new ol.Map({
         target: 'mapContainer',
         layers: [
-            new ol.layer.Tile({ source: new ol.source.OSM() }),
+            tileLayer,
             vectorLayer
         ],
         view: new ol.View({

@@ -48,7 +48,7 @@ Airwitech links do that.
   Errors: 0 | Warnings: 0").
 - Fonts are referenced relative to the stylesheet and embedded as data URIs in
   the single-file build. The only external resources are the optional map
-  library (jsDelivr) and map tiles (OpenStreetMap).
+  library (jsDelivr) and map tiles (Esri, with OpenStreetMap as a fallback).
 - Every page works from 320 px, is keyboard accessible with visible focus, and
   the meteor field is a still frame under `prefers-reduced-motion`.
 - Wide tables scroll inside their panel; the page never scrolls sideways. On

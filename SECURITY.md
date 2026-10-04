@@ -16,9 +16,11 @@ organization's data-handling requirements.
 Core coordinate transformations, validation, TXT import/export, clipboard
 output, and KML generation do not require a network connection.
 
-The optional map tab loads OpenLayers from jsDelivr and may request map tiles.
-If those resources are unavailable, the map feature is disabled while the core
-converter remains usable.
+The optional map tab loads OpenLayers from jsDelivr and requests map tiles from
+Esri (and from OpenStreetMap as a fallback). OpenStreetMap blocks pages that send
+no Referer header, such as a file opened from disk, which is why Esri is the
+primary source. If these resources are unavailable, the map shows a notice while
+the core converter remains usable.
 
 ## Supported Deployment
 
@@ -36,9 +38,10 @@ depth and should not replace response headers on a hosted deployment.
 ## Content Security Policy
 
 The source and generated application restrict scripts and styles to local
-assets and the jsDelivr origin used by the versioned OpenLayers URL. Image and
-network access is limited to the OpenStreetMap tile origin. Plugins, embedded
-objects, base URL changes, and form submissions are blocked. The generated
+assets and the jsDelivr origin used by the versioned OpenLayers URL. Images are
+limited to local and data sources plus the Esri and OpenStreetMap tile origins,
+and script network connections are disabled (`connect-src 'none'`). Plugins,
+embedded objects, base URL changes, and form submissions are blocked. The generated
 build permits inline local source and embedded fonts (`font-src data:`) because
 its CSS, JavaScript, and fonts are intentionally bundled into one file.
 
