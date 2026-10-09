@@ -413,8 +413,8 @@ h1 span { display: block; }
 
 @media (max-width: 359px) {
   .nav a[href$="#about"] { display: none; }
-  .nav { gap: 0.4rem; }
-  .nav a { font-size: 0.58rem; letter-spacing: 0.04em; }
+  .nav { gap: 0.32rem; }
+  .nav a { font-size: 0.54rem; letter-spacing: 0.02em; }
   .logo-word { font-size: 0.95rem; }
   .site-header { gap: 0.5rem; }
   .logo-mark { display: none; }

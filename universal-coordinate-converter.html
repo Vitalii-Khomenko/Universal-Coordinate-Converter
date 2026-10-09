@@ -426,8 +426,8 @@ h1 span { display: block; }
 
 @media (max-width: 359px) {
   .nav a[href$="#about"] { display: none; }
-  .nav { gap: 0.4rem; }
-  .nav a { font-size: 0.58rem; letter-spacing: 0.04em; }
+  .nav { gap: 0.32rem; }
+  .nav a { font-size: 0.54rem; letter-spacing: 0.02em; }
   .logo-word { font-size: 0.95rem; }
   .site-header { gap: 0.5rem; }
   .logo-mark { display: none; }
@@ -1038,7 +1038,7 @@ code { padding: 0.05rem 0.3rem; border: 1px solid var(--line); font-family: var(
 /* ---------- Tool switch under the shared header ---------- */
 
 .appbar { position: relative; z-index: 2; padding: 0 var(--gutter); }
-.appbar-inner { display: flex; align-items: center; gap: clamp(1rem, 3vw, 2rem); max-width: 78rem; margin: 0 auto; padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
+.appbar-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem clamp(1rem, 3vw, 2rem); max-width: 78rem; margin: 0 auto; padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
 .appbar a { color: var(--muted); font-family: var(--font-display); font-size: 0.68rem; font-weight: 500; letter-spacing: 0.18em; text-decoration: none; text-transform: uppercase; transition: color 0.25s ease; }
 .appbar a:hover, .appbar a[aria-current="page"] { color: var(--paper); }
 .appbar a[aria-current="page"] { box-shadow: 0 2px 0 var(--accent); padding-bottom: 0.25rem; }
@@ -1356,10 +1356,20 @@ td {
       <a href="https://study.airwitech.com/">Study</a>
       <a href="https://snn-robots.airwitech.com/">SNN Robots</a>
       <a href="https://geofield.airwitech.com/" aria-current="page">GeoField</a>
+      <a href="https://hifi.airwitech.com/">HiFi</a>
       <a href="https://airwitech.com/#about">About</a>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch between light and dark theme"><svg viewBox="0 0 7 7" width="14" height="14" aria-hidden="true" focusable="false"><path fill="currentColor" d="M2 0h3v1H2zM1 1h1v1H1zM5 1h1v1H5zM0 2h1v3H0zM6 2h1v3H6zM1 5h1v1H1zM5 5h1v1H5zM2 6h3v1H2zM3 1h2v1H3zM3 2h3v3H3zM3 5h2v1H3z"/></svg></button>
     </nav>
   </header>
+
+  <nav class="appbar" aria-label="GeoField tools">
+    <div class="appbar-inner">
+      <a href="https://geofield.airwitech.com/gnss">Static GNSS</a>
+      <a href="https://geofield.airwitech.com/ts">Total station</a>
+      <a href="https://geofield.airwitech.com/coordinate-converter/" aria-current="page">Coordinates</a>
+      <a href="https://geofield.airwitech.com/ipkt-renamer/">IPKT renamer</a>
+    </div>
+  </nav>
 
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
@@ -1601,6 +1611,7 @@ td {
       <li><a href="https://airwitech.com/">Airwitech</a></li>
       <li><a href="https://study.airwitech.com/">Study</a></li>
       <li><a href="https://snn-robots.airwitech.com/">SNN Robots</a></li>
+      <li><a href="https://hifi.airwitech.com/">HiFi Player</a></li>
       <li><a href="https://github.com/Vitalii-Khomenko" rel="me noopener noreferrer">GitHub</a></li>
       <li><a href="https://x.com/VitaliiKhomenk1" rel="me noopener noreferrer">X</a></li>
       <li><a href="https://profile.hackthebox.com/profile/019c5de1-3684-718b-83fe-028319a5a7d0" rel="me noopener noreferrer">HTB profile</a></li>

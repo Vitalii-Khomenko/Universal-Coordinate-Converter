@@ -206,3 +206,11 @@ Feel free to submit issues or pull requests to improve accuracy or add new syste
 ---
 
 *For questions or suggestions, contact the project author.*
+
+## Hosting
+
+The page is served at <https://geofield.airwitech.com/coordinate-converter/> by a small
+static container maintained in the Airwitech website repository (`geofield-tools/`), which
+vendors this repository's `index.html`, `css/`, `js/`, and `shared/` files. After a change
+here, run `tools/sync-geofield-tools.ps1` in that repository and redeploy. The header carries
+the shared Airwitech navigation (including HiFi) and a slim GeoField tool bar.
