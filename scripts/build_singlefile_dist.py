@@ -31,6 +31,7 @@ INLINE_CSP = (
     "img-src 'self' data: blob: https://server.arcgisonline.com "
     "https://tile.openstreetmap.org; "
     "font-src 'self' data:; "
+    "worker-src 'self' blob:; "
     "connect-src 'none'; object-src 'none'; "
     "base-uri 'none'; form-action 'none'"
 )
